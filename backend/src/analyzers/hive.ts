@@ -13,6 +13,7 @@ export async function hiveAnalyzer(buffer: Buffer, lang: string): Promise<Detect
       score: 0,
       label: lang === 'en' ? 'API not configured' : 'API não configurada',
       passed: true,
+      abstained: true,
     }
   }
 

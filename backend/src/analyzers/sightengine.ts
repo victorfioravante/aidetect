@@ -14,6 +14,7 @@ export async function sightengineAnalyzer(buffer: Buffer, lang: string): Promise
       score: 0,
       label: lang === 'en' ? 'API not configured' : 'API não configurada',
       passed: true,
+      abstained: true,
     }
   }
 

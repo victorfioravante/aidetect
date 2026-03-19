@@ -18,7 +18,7 @@ import { statsAnalyzer } from '../analyzers/stats'
 import { hiveAnalyzer } from '../analyzers/hive'
 import { sightengineAnalyzer } from '../analyzers/sightengine'
 import { transformersAnalyzer } from '../analyzers/transformers'
-import { weightedScore, computeVerdict, AnalysisResult, DetectorResult, Lang } from '../types'
+import { computeFinalScore, weightedScore, computeVerdict, AnalysisResult, DetectorResult, Lang } from '../types'
 import { rateLimitMiddleware } from '../middleware/rateLimit'
 
 export const socialRouter = Router()
@@ -216,7 +216,12 @@ socialRouter.post(
       }
 
       const { scores, breakdown, visualizations } = analysis
-      const score = weightedScore(scores as Parameters<typeof weightedScore>[0])
+      const rawBreakdown = breakdown as AnalysisResult['breakdown']
+      const { score, effectiveBreakdown } = computeFinalScore(
+        scores as Parameters<typeof weightedScore>[0],
+        rawBreakdown,
+        lang
+      )
       const { verdict, confidence } = computeVerdict(score)
 
       const result: AnalysisResult = {
@@ -224,7 +229,7 @@ socialRouter.post(
         verdict,
         score,
         confidence,
-        breakdown: breakdown as AnalysisResult['breakdown'],
+        breakdown: effectiveBreakdown,
         visualizations,
         meta: {
           processedAt: new Date().toISOString(),

@@ -11,7 +11,10 @@ interface Props {
 export function DetectorCard({ name, result, index }: Props) {
   const { t } = useTranslation()
 
-  const barColor = result.score >= 70
+  const isAbstained = result.abstained && result.score === 0
+  const barColor = isAbstained
+    ? 'bg-gray-600'
+    : result.score >= 70
     ? 'bg-red-500'
     : result.score >= 40
     ? 'bg-amber-500'
@@ -19,7 +22,7 @@ export function DetectorCard({ name, result, index }: Props) {
 
   return (
     <motion.div
-      className="bg-gray-900 border border-gray-800 rounded-xl p-4"
+      className={`bg-gray-900 border rounded-xl p-4 ${isAbstained ? 'border-gray-700 opacity-60' : 'border-gray-800'}`}
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.07 }}

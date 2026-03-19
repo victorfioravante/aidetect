@@ -11,7 +11,7 @@ import { statsAnalyzer } from '../analyzers/stats'
 import { hiveAnalyzer } from '../analyzers/hive'
 import { sightengineAnalyzer } from '../analyzers/sightengine'
 import { transformersAnalyzer } from '../analyzers/transformers'
-import { weightedScore, computeVerdict, AnalysisResult, Lang } from '../types'
+import { computeFinalScore, computeVerdict, AnalysisResult, Lang } from '../types'
 import { rateLimitMiddleware } from '../middleware/rateLimit'
 
 const upload = multer({
@@ -86,7 +86,20 @@ analyzeRouter.post(
         transformers: transformersResult.score,
       }
 
-      const score = weightedScore(rawScores)
+      const rawBreakdown: AnalysisResult['breakdown'] = {
+        symmetry:    symmetryResult,
+        stats:       statsResult,
+        fft:         fftResult,
+        texture:     textureResult,
+        shadow:      shadowResult,
+        ela:         elaResult,
+        gradient:    gradientResult,
+        hive:        hiveResult,
+        sightengine: sightengineResult,
+        transformers: transformersResult,
+      }
+
+      const { score, effectiveBreakdown } = computeFinalScore(rawScores, rawBreakdown, lang)
       const { verdict, confidence } = computeVerdict(score)
 
       const result: AnalysisResult = {
@@ -94,18 +107,7 @@ analyzeRouter.post(
         verdict,
         score,
         confidence,
-        breakdown: {
-          symmetry:    symmetryResult,
-          stats:       statsResult,
-          fft:         fftResult,
-          texture:     textureResult,
-          shadow:      shadowResult,
-          ela:         elaResult,
-          gradient:    gradientResult,
-          hive:         hiveResult,
-          sightengine:  sightengineResult,
-          transformers: transformersResult,
-        },
+        breakdown: effectiveBreakdown,
         visualizations: {
           elaMap,
           gradientMap,

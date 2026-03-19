@@ -85,8 +85,8 @@ export async function transformersAnalyzer(buffer: Buffer, lang: string): Promis
       : 'Provavelmente autêntico (modelo local)'
 
     return { score, label, passed: score < 50 }
-  } catch (err) {
-    // Model not yet downloaded or load failed → return neutral score, don't break pipeline
+  } catch {
+    // Model not yet downloaded or load failed → signal abstained so caller applies heuristic
     loadError = null // allow retry on next request
     classifier = null
 
@@ -94,6 +94,7 @@ export async function transformersAnalyzer(buffer: Buffer, lang: string): Promis
       score: 0,
       label: lang === 'en' ? 'Local model unavailable' : 'Modelo local indisponível',
       passed: true,
+      abstained: true,
     }
   }
 }

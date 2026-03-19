@@ -6,6 +6,7 @@ export interface DetectorResult {
   score: number
   label: string
   passed: boolean
+  abstained?: boolean
   hotspots?: number
   edgeDensity?: number
 }
