@@ -17,7 +17,7 @@ app.use(cors({
     const allowed = allowedOrigins.some((o) =>
       typeof o === 'string' ? o === origin : o.test(origin)
     )
-    callback(allowed ? null : new Error('Not allowed by CORS'), allowed)
+    callback(null, allowed)
   },
   credentials: true,
 }))
