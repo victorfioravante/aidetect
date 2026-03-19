@@ -10,6 +10,7 @@
     "db:migrate": "prisma migrate deploy"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
     "@prisma/client": "^5.9.1",
     "axios": "^1.6.7",
     "cors": "^2.8.5",

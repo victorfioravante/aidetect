@@ -9,7 +9,7 @@ import { AdSlot } from './AdSlot'
 import { AnalysisResult } from '../types'
 
 const DETECTOR_KEYS = [
-  'symmetry', 'stats', 'fft', 'texture', 'shadow', 'ela', 'gradient', 'hive', 'sightengine',
+  'symmetry', 'stats', 'fft', 'texture', 'shadow', 'ela', 'gradient', 'hive', 'sightengine', 'transformers',
 ] as const
 
 type VizKey = 'elaMap' | 'gradientMap' | 'fftSpectrum' | 'shadowViz'

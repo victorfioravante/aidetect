@@ -17,6 +17,7 @@ import { symmetryAnalyzer } from '../analyzers/symmetry'
 import { statsAnalyzer } from '../analyzers/stats'
 import { hiveAnalyzer } from '../analyzers/hive'
 import { sightengineAnalyzer } from '../analyzers/sightengine'
+import { transformersAnalyzer } from '../analyzers/transformers'
 import { weightedScore, computeVerdict, AnalysisResult, DetectorResult, Lang } from '../types'
 import { rateLimitMiddleware } from '../middleware/rateLimit'
 
@@ -82,6 +83,7 @@ async function analyzeImageBuffer(buffer: Buffer, lang: Lang): Promise<FrameAnal
     statsResult,
     hiveResult,
     sightengineResult,
+    transformersResult,
   ] = await Promise.all([
     elaAnalyzer(buffer, lang),
     gradientAnalyzer(buffer, lang),
@@ -92,19 +94,21 @@ async function analyzeImageBuffer(buffer: Buffer, lang: Lang): Promise<FrameAnal
     statsAnalyzer(buffer, lang),
     hiveAnalyzer(buffer, lang),
     sightengineAnalyzer(buffer, lang),
+    transformersAnalyzer(buffer, lang),
   ])
 
   return {
     scores: {
-      symmetry:    symmetryResult.score,
-      stats:       statsResult.score,
-      fft:         fftResult.score,
-      texture:     textureResult.score,
-      shadow:      shadowResult.score,
-      ela:         elaResult.score,
-      gradient:    gradientResult.score,
-      hive:        hiveResult.score,
-      sightengine: sightengineResult.score,
+      symmetry:     symmetryResult.score,
+      stats:        statsResult.score,
+      fft:          fftResult.score,
+      texture:      textureResult.score,
+      shadow:       shadowResult.score,
+      ela:          elaResult.score,
+      gradient:     gradientResult.score,
+      hive:         hiveResult.score,
+      sightengine:  sightengineResult.score,
+      transformers: transformersResult.score,
     },
     breakdown: {
       symmetry:    symmetryResult,
@@ -114,8 +118,9 @@ async function analyzeImageBuffer(buffer: Buffer, lang: Lang): Promise<FrameAnal
       shadow:      shadowResult,
       ela:         elaResult,
       gradient:    gradientResult,
-      hive:        hiveResult,
-      sightengine: sightengineResult,
+      hive:         hiveResult,
+      sightengine:  sightengineResult,
+      transformers: transformersResult,
     },
     visualizations: { elaMap, gradientMap, fftSpectrum, shadowViz },
   }

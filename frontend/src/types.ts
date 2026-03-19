@@ -23,8 +23,9 @@ export interface AnalysisResult {
     shadow:      DetectorResult
     ela:         DetectorResult
     gradient:    DetectorResult
-    hive:        DetectorResult
-    sightengine: DetectorResult
+    hive:         DetectorResult
+    sightengine:  DetectorResult
+    transformers: DetectorResult
   }
   visualizations: {
     elaMap:      string

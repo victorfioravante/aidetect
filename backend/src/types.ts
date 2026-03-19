@@ -16,15 +16,16 @@ export interface AnalysisResult {
   score: number
   confidence: Confidence
   breakdown: {
-    symmetry:    DetectorResult
-    stats:       DetectorResult
-    fft:         DetectorResult
-    texture:     DetectorResult
-    shadow:      DetectorResult
-    ela:         DetectorResult
-    gradient:    DetectorResult
-    hive:        DetectorResult
-    sightengine: DetectorResult
+    symmetry:     DetectorResult
+    stats:        DetectorResult
+    fft:          DetectorResult
+    texture:      DetectorResult
+    shadow:       DetectorResult
+    ela:          DetectorResult
+    gradient:     DetectorResult
+    hive:         DetectorResult
+    sightengine:  DetectorResult
+    transformers: DetectorResult
   }
   visualizations: {
     elaMap:      string
@@ -43,18 +44,19 @@ export interface AnalysisResult {
 
 // Weights must sum to 100
 export const WEIGHTS = {
-  symmetry:    12,
-  stats:       10,
-  fft:         13,
-  texture:     13,
-  shadow:      12,
-  ela:         10,
-  gradient:     5,
-  hive:        13,
-  sightengine: 12,
+  symmetry:     12,
+  stats:        10,
+  fft:          10,  // -3 (redistributed to transformers)
+  texture:      11,  // -2
+  shadow:       12,
+  ela:          10,
+  gradient:      5,
+  hive:          8,  // -5 (local model partially replaces)
+  sightengine:   7,  // -5
+  transformers:  15, // new — local ViT model (Organika/sdxl-detector)
 } as const
 
-// Verify: 12+10+13+13+12+10+5+13+12 = 100 ✓
+// Verify: 12+10+10+11+12+10+5+8+7+15 = 100 ✓
 
 export function computeVerdict(score: number): { verdict: Verdict; confidence: Confidence } {
   if (score >= 70) {

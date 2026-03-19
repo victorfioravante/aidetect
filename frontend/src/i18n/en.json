@@ -74,7 +74,8 @@
     "ela": "Error Level Analysis",
     "gradient": "Gradient Map",
     "hive": "Hive Moderation API",
-    "sightengine": "Sightengine API"
+    "sightengine": "Sightengine API",
+    "transformers": "Local Model (Transformers.js)"
   },
   "viz": {
     "ela": {
