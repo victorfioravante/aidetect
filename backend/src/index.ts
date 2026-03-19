@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import { analyzeRouter } from './routes/analyze'
+import { socialRouter } from './routes/social'
 
 const app = express()
 const PORT = Number(process.env.PORT || 3001)
@@ -32,6 +33,7 @@ app.get('/health', (_req, res) => {
 
 // API routes
 app.use('/api/analyze', analyzeRouter)
+app.use('/api/social', socialRouter)
 
 // 404
 app.use((_req, res) => {

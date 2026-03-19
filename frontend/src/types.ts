@@ -37,6 +37,7 @@ export interface AnalysisResult {
     mediaType: 'image' | 'video'
     sourceUrl?: string
     platform?: string
+    thumbnailUrl?: string
   }
 }
 

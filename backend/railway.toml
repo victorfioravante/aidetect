@@ -1,6 +1,7 @@
 [build]
 builder = "nixpacks"
 buildCommand = "npm run build"
+nixpkgs = ["yt-dlp"]
 
 [deploy]
 startCommand = "npm start"

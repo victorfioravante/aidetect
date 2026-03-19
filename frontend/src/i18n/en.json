@@ -24,8 +24,23 @@
     "formats": "JPG, PNG, WebP, GIF • Max 10MB"
   },
   "link": {
-    "placeholder": "Paste Instagram, TikTok, Twitter link...",
+    "placeholder": "Paste TikTok, Instagram, Twitter or YouTube link...",
     "btn": "Analyze Link"
+  },
+  "social": {
+    "placeholder": "Paste TikTok, Instagram, Twitter or YouTube link...",
+    "detecting": "Detecting platform...",
+    "extracting": "Extracting media...",
+    "analyzing": "Analyzing...",
+    "unsupported": "Platform not supported. Use TikTok, Instagram, Twitter or YouTube.",
+    "privateContent": "Private or inaccessible content.",
+    "platforms": {
+      "TIKTOK": "TikTok",
+      "TWITTER": "Twitter / X",
+      "INSTAGRAM": "Instagram",
+      "YOUTUBE": "YouTube",
+      "FACEBOOK": "Facebook"
+    }
   },
   "video": {
     "title": "Drag and drop your video here",

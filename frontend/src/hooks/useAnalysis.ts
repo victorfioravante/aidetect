@@ -18,10 +18,11 @@ interface ApiError {
 type ApiResponse = ApiSuccess | ApiError | RateLimitError
 
 export function useAnalysis() {
-  const { setResult, setLoading, setError, setRateLimit, setRemaining } = useAnalysisStore()
+  const { setResult, setLoading, setLoadingStage, setError, setRateLimit, setRemaining } = useAnalysisStore()
 
   async function analyzeFile(file: File, lang: 'pt' | 'en' = 'pt') {
     setLoading(true)
+    setLoadingStage('analyzing')
     setError(null)
 
     const formData = new FormData()
@@ -56,16 +57,23 @@ export function useAnalysis() {
 
   async function analyzeUrl(url: string, lang: 'pt' | 'en' = 'pt') {
     setLoading(true)
+    setLoadingStage('extracting')
     setError(null)
 
-    const formData = new FormData()
-    formData.append('url', url)
-    formData.append('lang', lang)
+    // Switch to "analyzing" stage after extraction delay
+    const stageTimer = setTimeout(() => setLoadingStage('analyzing'), 3000)
 
     try {
-      const res = await axios.post<ApiResponse>(`${API_URL}/api/analyze`, formData)
+      const res = await axios.post<ApiResponse>(
+        `${API_URL}/api/social/extract`,
+        { url, lang },
+        { headers: { 'Content-Type': 'application/json' } }
+      )
+
       const data = res.data
       if (data.success) {
+        const remaining = res.headers['x-ratelimit-remaining']
+        if (remaining !== undefined) setRemaining(Number(remaining))
         setResult((data as ApiSuccess).data)
       } else {
         setError((data as ApiError).error)
@@ -75,10 +83,14 @@ export function useAnalysis() {
       if (axiosErr.response?.status === 429) {
         const body = axiosErr.response.data as RateLimitError
         setRateLimit(body.resetAt)
+      } else if (axiosErr.response?.data) {
+        const body = axiosErr.response.data as ApiError
+        setError(body.error || 'networkError')
       } else {
         setError('networkError')
       }
     } finally {
+      clearTimeout(stageTimer)
       setLoading(false)
     }
   }

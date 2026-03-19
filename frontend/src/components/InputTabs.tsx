@@ -7,27 +7,52 @@ import { Lang } from '../types'
 
 type Tab = 'upload' | 'link' | 'video'
 
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024 // 50MB
+type SocialPlatform = 'TIKTOK' | 'TWITTER' | 'INSTAGRAM' | 'YOUTUBE' | 'FACEBOOK'
+
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024
+
+const PLATFORM_REGEX: Record<SocialPlatform, RegExp> = {
+  TIKTOK:    /tiktok\.com/,
+  TWITTER:   /(twitter|x)\.com/,
+  INSTAGRAM: /instagram\.com/,
+  YOUTUBE:   /youtube\.com|youtu\.be/,
+  FACEBOOK:  /facebook\.com|fb\.watch/,
+}
+
+const PLATFORM_DISPLAY: Record<SocialPlatform, { emoji: string; color: string }> = {
+  TIKTOK:    { emoji: '🎵', color: 'bg-gray-900 border-gray-400 text-white' },
+  TWITTER:   { emoji: '🐦', color: 'bg-sky-950 border-sky-500 text-sky-300' },
+  INSTAGRAM: { emoji: '📸', color: 'bg-pink-950 border-pink-500 text-pink-300' },
+  YOUTUBE:   { emoji: '📺', color: 'bg-red-950 border-red-500 text-red-300' },
+  FACEBOOK:  { emoji: '📘', color: 'bg-blue-950 border-blue-500 text-blue-300' },
+}
+
+function detectPlatform(url: string): SocialPlatform | null {
+  for (const [platform, regex] of Object.entries(PLATFORM_REGEX)) {
+    if (regex.test(url)) return platform as SocialPlatform
+  }
+  return null
+}
 
 export function InputTabs() {
   const { t, i18n } = useTranslation()
   const [activeTab, setActiveTab] = useState<Tab>('upload')
   const [linkValue, setLinkValue] = useState('')
   const { analyzeFile, analyzeUrl } = useAnalysis()
-  const { isLoading, setError } = useAnalysisStore()
+  const { isLoading, loadingStage, setError } = useAnalysisStore()
   const lang = (i18n.language as Lang) || 'pt'
+
+  const detectedPlatform = linkValue.trim() ? detectPlatform(linkValue.trim()) : null
 
   const onDrop = useCallback(async (accepted: File[], isVideo = false) => {
     const file = accepted[0]
     if (!file) return
-
     const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE
     if (file.size > maxSize) {
-      setError(isVideo ? 'errors.fileTooBig' : 'errors.fileTooBig')
+      setError('errors.fileTooBig')
       return
     }
-
     await analyzeFile(file, lang)
   }, [analyzeFile, lang, setError])
 
@@ -47,8 +72,14 @@ export function InputTabs() {
 
   async function handleLinkSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!linkValue.trim()) return
+    if (!linkValue.trim() || !detectedPlatform) return
     await analyzeUrl(linkValue.trim(), lang)
+  }
+
+  function getLinkButtonLabel() {
+    if (!isLoading) return t('link.btn')
+    if (loadingStage === 'extracting') return t('social.extracting')
+    return t('analyze.analyzing')
   }
 
   const tabs: { key: Tab; label: string }[] = [
@@ -103,26 +134,41 @@ export function InputTabs() {
 
       {/* Link tab */}
       {activeTab === 'link' && (
-        <form onSubmit={handleLinkSubmit} className="space-y-4">
+        <form onSubmit={handleLinkSubmit} className="space-y-3">
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
             <div className="text-4xl mb-4 text-center">🔗</div>
+
             <div className="flex gap-3">
               <input
                 type="url"
                 value={linkValue}
                 onChange={(e) => setLinkValue(e.target.value)}
-                placeholder={t('link.placeholder')}
+                placeholder={t('social.placeholder')}
                 className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-violet-500 transition-colors"
                 disabled={isLoading}
               />
               <button
                 type="submit"
-                className="px-5 py-3 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg font-medium transition-colors disabled:opacity-50"
-                disabled={isLoading || !linkValue.trim()}
+                className="px-5 py-3 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
+                disabled={isLoading || !linkValue.trim() || !detectedPlatform}
               >
-                {isLoading ? t('analyze.analyzing') : t('link.btn')}
+                {getLinkButtonLabel()}
               </button>
             </div>
+
+            {/* Platform badge */}
+            {linkValue.trim() && (
+              <div className="mt-3">
+                {detectedPlatform ? (
+                  <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border font-medium ${PLATFORM_DISPLAY[detectedPlatform].color}`}>
+                    {PLATFORM_DISPLAY[detectedPlatform].emoji}
+                    {t(`social.platforms.${detectedPlatform}`)}
+                  </span>
+                ) : (
+                  <p className="text-amber-400 text-xs">{t('social.unsupported')}</p>
+                )}
+              </div>
+            )}
           </div>
         </form>
       )}

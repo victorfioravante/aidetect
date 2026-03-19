@@ -101,6 +101,20 @@ export function ResultPanel() {
 
         {/* Score + verdict */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 flex flex-col items-center">
+          {/* Social thumbnail */}
+          {result.meta.thumbnailUrl && (
+            <div className="mb-4 w-full max-w-xs">
+              <img
+                src={result.meta.thumbnailUrl}
+                alt="Thumbnail"
+                className="w-full rounded-xl object-cover max-h-48"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
+              {result.meta.platform && (
+                <p className="text-gray-500 text-xs text-center mt-1">{result.meta.platform}</p>
+              )}
+            </div>
+          )}
           <ScoreGauge score={result.score} verdict={result.verdict} confidence={result.confidence} />
 
           <div className="flex gap-4 mt-6">
