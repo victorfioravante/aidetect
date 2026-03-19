@@ -6,6 +6,8 @@ export interface DetectorResult {
   score: number
   label: string
   passed: boolean
+  hotspots?: number  // ELA: % pixels > 128
+  edgeDensity?: number // Gradient: % pixels with magnitude > 100
 }
 
 export interface AnalysisResult {
@@ -14,18 +16,21 @@ export interface AnalysisResult {
   score: number
   confidence: Confidence
   breakdown: {
-    rotation: DetectorResult
-    stats: DetectorResult
-    fft: DetectorResult
-    texture: DetectorResult
-    shadow: DetectorResult
-    ela: DetectorResult
-    hive: DetectorResult
+    symmetry:    DetectorResult
+    stats:       DetectorResult
+    fft:         DetectorResult
+    texture:     DetectorResult
+    shadow:      DetectorResult
+    ela:         DetectorResult
+    gradient:    DetectorResult
+    hive:        DetectorResult
+    sightengine: DetectorResult
   }
   visualizations: {
-    elaMap: string
+    elaMap:      string
     gradientMap: string
     fftSpectrum: string
+    shadowViz:   string
   }
   meta: {
     processedAt: string
@@ -37,14 +42,18 @@ export interface AnalysisResult {
 
 // Weights must sum to 100
 export const WEIGHTS = {
-  rotation: 15,
-  stats: 10,
-  fft: 15,
-  texture: 15,
-  shadow: 15,
-  ela: 10,
-  hive: 20,
+  symmetry:    12,
+  stats:       10,
+  fft:         13,
+  texture:     13,
+  shadow:      12,
+  ela:         10,
+  gradient:     5,
+  hive:        13,
+  sightengine: 12,
 } as const
+
+// Verify: 12+10+13+13+12+10+5+13+12 = 100 ✓
 
 export function computeVerdict(score: number): { verdict: Verdict; confidence: Confidence } {
   if (score >= 70) {

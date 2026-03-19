@@ -6,9 +6,10 @@ import { gradientAnalyzer } from '../analyzers/gradient'
 import { textureAnalyzer } from '../analyzers/texture'
 import { fftAnalyzer } from '../analyzers/fft'
 import { shadowAnalyzer } from '../analyzers/shadow'
-import { rotationAnalyzer } from '../analyzers/rotation'
+import { symmetryAnalyzer } from '../analyzers/symmetry'
 import { statsAnalyzer } from '../analyzers/stats'
 import { hiveAnalyzer } from '../analyzers/hive'
+import { sightengineAnalyzer } from '../analyzers/sightengine'
 import { weightedScore, computeVerdict, AnalysisResult, Lang } from '../types'
 import { rateLimitMiddleware } from '../middleware/rateLimit'
 
@@ -36,8 +37,6 @@ analyzeRouter.post(
     if (req.file) {
       buffer = req.file.buffer
     } else if (sourceUrl) {
-      // Social URL will be handled by /api/social/extract in future phases
-      // For now, return error
       res.status(400).json({ success: false, error: 'URL extraction not yet implemented' })
       return
     }
@@ -48,35 +47,39 @@ analyzeRouter.post(
     }
 
     try {
-      // Run local analyzers in parallel
+      // Run all analyzers in parallel
       const [
         { result: elaResult, elaMap },
         { result: gradientResult, gradientMap },
         textureResult,
         { result: fftResult, fftSpectrum },
-        shadowResult,
-        rotationResult,
+        { result: shadowResult, shadowViz },
+        symmetryResult,
         statsResult,
         hiveResult,
+        sightengineResult,
       ] = await Promise.all([
         elaAnalyzer(buffer, lang),
         gradientAnalyzer(buffer, lang),
         textureAnalyzer(buffer, lang),
         fftAnalyzer(buffer, lang),
         shadowAnalyzer(buffer, lang),
-        rotationAnalyzer(buffer, lang),
+        symmetryAnalyzer(buffer, lang),
         statsAnalyzer(buffer, lang),
         hiveAnalyzer(buffer, lang),
+        sightengineAnalyzer(buffer, lang),
       ])
 
       const rawScores = {
-        rotation: rotationResult.score,
-        stats: statsResult.score,
-        fft: fftResult.score,
-        texture: textureResult.score,
-        shadow: shadowResult.score,
-        ela: elaResult.score,
-        hive: hiveResult.score,
+        symmetry:    symmetryResult.score,
+        stats:       statsResult.score,
+        fft:         fftResult.score,
+        texture:     textureResult.score,
+        shadow:      shadowResult.score,
+        ela:         elaResult.score,
+        gradient:    gradientResult.score,
+        hive:        hiveResult.score,
+        sightengine: sightengineResult.score,
       }
 
       const score = weightedScore(rawScores)
@@ -88,18 +91,21 @@ analyzeRouter.post(
         score,
         confidence,
         breakdown: {
-          rotation: rotationResult,
-          stats: statsResult,
-          fft: fftResult,
-          texture: textureResult,
-          shadow: shadowResult,
-          ela: elaResult,
-          hive: hiveResult,
+          symmetry:    symmetryResult,
+          stats:       statsResult,
+          fft:         fftResult,
+          texture:     textureResult,
+          shadow:      shadowResult,
+          ela:         elaResult,
+          gradient:    gradientResult,
+          hive:        hiveResult,
+          sightengine: sightengineResult,
         },
         visualizations: {
           elaMap,
           gradientMap,
           fftSpectrum,
+          shadowViz,
         },
         meta: {
           processedAt: new Date().toISOString(),

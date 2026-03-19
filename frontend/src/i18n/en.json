@@ -51,18 +51,33 @@
     "score": "AI Score"
   },
   "detectors": {
-    "rotation": "Asymmetry/Rotation",
+    "symmetry": "Symmetry",
     "stats": "Pixel Statistics",
-    "fft": "Frequency Analysis",
+    "fft": "Frequency Analysis (FFT)",
     "texture": "Texture Analysis",
     "shadow": "Shadow Consistency",
     "ela": "Error Level Analysis",
-    "hive": "Hive Moderation API"
+    "gradient": "Gradient Map",
+    "hive": "Hive Moderation API",
+    "sightengine": "Sightengine API"
   },
   "viz": {
-    "ela": "ELA Map",
-    "fft": "FFT Spectrum",
-    "gradient": "Gradient Map"
+    "ela": {
+      "title": "Error Level Analysis (ELA)",
+      "desc": "Red/yellow regions indicate inconsistent compression — a sign of editing or AI generation"
+    },
+    "gradient": {
+      "title": "Gradient Map",
+      "desc": "Artificially uniform edges (large white areas) are common in AI-generated images"
+    },
+    "fft": {
+      "title": "FFT Spectrum",
+      "desc": "A bright cross at the center indicates a periodic frequency pattern — characteristic of AI images"
+    },
+    "shadow": {
+      "title": "Lighting Direction",
+      "desc": "Green arrows = consistent lighting. Red arrows = inconsistent directions, possible AI"
+    }
   },
   "limit": {
     "reached": "Daily limit reached",

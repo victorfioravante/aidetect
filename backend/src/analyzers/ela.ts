@@ -7,7 +7,7 @@ import { DetectorResult } from '../types'
  * Uniform flat regions = AI-generated. High variance in natural images.
  */
 export async function elaAnalyzer(buffer: Buffer, lang: string): Promise<{
-  result: DetectorResult
+  result: DetectorResult & { hotspots?: number }
   elaMap: string
 }> {
   try {
@@ -24,29 +24,52 @@ export async function elaAnalyzer(buffer: Buffer, lang: string): Promise<{
       .toBuffer()
 
     const len = Math.min(original.length, recompressed.length)
-    const diffData = Buffer.alloc(len)
+    const amplified = new Uint8Array(len)
     let sumDiff = 0
     let maxDiff = 0
+    let hotspotCount = 0
 
     for (let i = 0; i < len; i++) {
       const d = Math.abs(original[i] - recompressed[i])
-      diffData[i] = Math.min(255, d * 10) // amplify
+      const amp = Math.min(255, d * 10)
+      amplified[i] = amp
       sumDiff += d
       maxDiff = Math.max(maxDiff, d)
+      if (amp > 128) hotspotCount++
     }
 
     const avgDiff = sumDiff / len
+    const hotspots = hotspotCount / len // fraction 0-1
 
     // AI images tend to have very uniform ELA (low variance)
-    // Natural photos have more variance due to real compression artifacts
-    const variance = computeVariance(diffData, avgDiff)
+    const variance = computeVariance(amplified, avgDiff)
     const normalizedVariance = Math.min(variance / 50, 1)
 
-    // Low variance → more likely AI
-    const score = Math.round((1 - normalizedVariance) * 100)
+    // Low variance → more likely AI; hotspots > 15% boosts score
+    let score = Math.round((1 - normalizedVariance) * 80)
+    if (hotspots > 0.15) score = Math.min(100, score + 20)
 
-    // Generate ELA visualization
-    const elaImage = await sharp(diffData, {
+    // Apply hot colormap: 0→black, 85→red, 170→yellow, 255→white
+    const rgbData = Buffer.alloc(info.width * info.height * 3)
+    for (let i = 0; i < amplified.length; i++) {
+      const v = amplified[i]
+      let r = 0, g = 0, b = 0
+      if (v <= 85) {
+        r = Math.round(v * 3)
+      } else if (v <= 170) {
+        r = 255
+        g = Math.round((v - 85) * 3)
+      } else {
+        r = 255
+        g = 255
+        b = Math.round((v - 170) * 3)
+      }
+      rgbData[i * 3] = r
+      rgbData[i * 3 + 1] = g
+      rgbData[i * 3 + 2] = b
+    }
+
+    const elaImage = await sharp(rgbData, {
       raw: { width: info.width, height: info.height, channels: 3 },
     })
       .png()
@@ -67,7 +90,7 @@ export async function elaAnalyzer(buffer: Buffer, lang: string): Promise<{
       : 'Variância ELA natural, provavelmente autêntico'
 
     return {
-      result: { score, label, passed: score < 50 },
+      result: { score, label, passed: score < 50, hotspots: Math.round(hotspots * 100) },
       elaMap,
     }
   } catch {
@@ -82,7 +105,7 @@ export async function elaAnalyzer(buffer: Buffer, lang: string): Promise<{
   }
 }
 
-function computeVariance(data: Buffer, mean: number): number {
+function computeVariance(data: Uint8Array, mean: number): number {
   let sum = 0
   for (let i = 0; i < data.length; i++) {
     const diff = data[i] - mean

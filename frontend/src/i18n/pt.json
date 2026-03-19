@@ -51,18 +51,33 @@
     "score": "Pontuação de IA"
   },
   "detectors": {
-    "rotation": "Assimetria/Rotação",
+    "symmetry": "Simetria",
     "stats": "Estatística de Pixels",
-    "fft": "Análise de Frequência",
+    "fft": "Análise de Frequência (FFT)",
     "texture": "Análise de Textura",
     "shadow": "Consistência de Sombras",
     "ela": "Error Level Analysis",
-    "hive": "Hive Moderation API"
+    "gradient": "Mapa de Gradiente",
+    "hive": "Hive Moderation API",
+    "sightengine": "Sightengine API"
   },
   "viz": {
-    "ela": "Mapa ELA",
-    "fft": "Espectro FFT",
-    "gradient": "Mapa de Gradiente"
+    "ela": {
+      "title": "Análise de Erro (ELA)",
+      "desc": "Regiões vermelhas/amarelas indicam compressão inconsistente — sinal de edição ou geração por IA"
+    },
+    "gradient": {
+      "title": "Mapa de Gradiente",
+      "desc": "Bordas artificialmente uniformes (muita área branca) são comuns em imagens geradas por IA"
+    },
+    "fft": {
+      "title": "Espectro FFT",
+      "desc": "Uma cruz brilhante no centro indica padrão de frequência periódico — característico de imagens IA"
+    },
+    "shadow": {
+      "title": "Direção de Iluminação",
+      "desc": "Setas verdes = iluminação consistente. Setas vermelhas = direções inconsistentes, possível IA"
+    }
   },
   "limit": {
     "reached": "Limite diário atingido",
