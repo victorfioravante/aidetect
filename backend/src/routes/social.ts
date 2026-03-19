@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid'
 import path from 'path'
 import os from 'os'
 import fs from 'fs'
-import { promisify } from 'util'
 import ffmpeg from 'fluent-ffmpeg'
 import axios from 'axios'
 
@@ -18,6 +17,9 @@ import { statsAnalyzer } from '../analyzers/stats'
 import { hiveAnalyzer } from '../analyzers/hive'
 import { sightengineAnalyzer } from '../analyzers/sightengine'
 import { transformersAnalyzer } from '../analyzers/transformers'
+import { exifAnalyzer } from '../analyzers/exif'
+import { noiseAnalyzer } from '../analyzers/noise'
+import { temporalAnalyzer } from '../analyzers/temporal'
 import { computeFinalScore, weightedScore, computeVerdict, AnalysisResult, DetectorResult, Lang } from '../types'
 import { rateLimitMiddleware } from '../middleware/rateLimit'
 
@@ -50,8 +52,8 @@ async function extractVideoFrames(videoPath: string, count = 10): Promise<Buffer
       ffmpeg(videoPath)
         .outputOptions(['-vf', `fps=1`, '-frames:v', String(count)])
         .output(path.join(tmpDir, 'frame-%03d.jpg'))
-        .on('end', resolve)
-        .on('error', reject)
+        .on('end', () => resolve())
+        .on('error', (err: Error) => reject(err))
         .run()
     })
 
@@ -84,6 +86,8 @@ async function analyzeImageBuffer(buffer: Buffer, lang: Lang): Promise<FrameAnal
     hiveResult,
     sightengineResult,
     transformersResult,
+    exifResult,
+    noiseResult,
   ] = await Promise.all([
     elaAnalyzer(buffer, lang),
     gradientAnalyzer(buffer, lang),
@@ -95,6 +99,8 @@ async function analyzeImageBuffer(buffer: Buffer, lang: Lang): Promise<FrameAnal
     hiveAnalyzer(buffer, lang),
     sightengineAnalyzer(buffer, lang),
     transformersAnalyzer(buffer, lang),
+    exifAnalyzer(buffer, lang),
+    noiseAnalyzer(buffer, lang),
   ])
 
   return {
@@ -106,6 +112,8 @@ async function analyzeImageBuffer(buffer: Buffer, lang: Lang): Promise<FrameAnal
       shadow:       shadowResult.score,
       ela:          elaResult.score,
       gradient:     gradientResult.score,
+      exif:         exifResult.score,
+      noise:        noiseResult.score,
       hive:         hiveResult.score,
       sightengine:  sightengineResult.score,
       transformers: transformersResult.score,
@@ -118,8 +126,10 @@ async function analyzeImageBuffer(buffer: Buffer, lang: Lang): Promise<FrameAnal
       shadow:      shadowResult,
       ela:         elaResult,
       gradient:    gradientResult,
-      hive:         hiveResult,
-      sightengine:  sightengineResult,
+      exif:        exifResult,
+      noise:       noiseResult,
+      hive:        hiveResult,
+      sightengine: sightengineResult,
       transformers: transformersResult,
     },
     visualizations: { elaMap, gradientMap, fftSpectrum, shadowViz },
@@ -198,15 +208,16 @@ socialRouter.post(
 
     try {
       let analysis: FrameAnalysis
+      let videoFrames: Buffer[] | null = null
 
       if (extracted.mediaType === 'video') {
         // Write video to temp file
         const tmpVideo = path.join(os.tmpdir(), `aidetect-video-${Date.now()}.mp4`)
         fs.writeFileSync(tmpVideo, mediaBuffer)
         try {
-          const frames = await extractVideoFrames(tmpVideo, 10)
-          if (frames.length === 0) throw new Error('Nenhum frame extraído')
-          const frameAnalyses = await Promise.all(frames.map((f) => analyzeImageBuffer(f, lang)))
+          videoFrames = await extractVideoFrames(tmpVideo, 10)
+          if (videoFrames.length === 0) throw new Error('Nenhum frame extraído')
+          const frameAnalyses = await Promise.all(videoFrames.map((f) => analyzeImageBuffer(f, lang)))
           analysis = averageFrameAnalyses(frameAnalyses)
         } finally {
           fs.rmSync(tmpVideo, { force: true })
@@ -216,12 +227,74 @@ socialRouter.post(
       }
 
       const { scores, breakdown, visualizations } = analysis
-      const rawBreakdown = breakdown as AnalysisResult['breakdown']
-      const { score, effectiveBreakdown } = computeFinalScore(
-        scores as Parameters<typeof weightedScore>[0],
-        rawBreakdown,
-        lang
-      )
+
+      // ─── Temporal analysis (video only) ───────────────────────────────────
+      let temporalResult: DetectorResult & { skipped?: boolean }
+      if (videoFrames && videoFrames.length >= 2) {
+        temporalResult = await temporalAnalyzer(videoFrames, lang)
+      } else {
+        temporalResult = {
+          score: 0,
+          label: lang === 'en' ? 'Temporal analysis requires video' : 'Análise temporal requer vídeo',
+          passed: true,
+          abstained: true,
+          skipped: true,
+        }
+      }
+
+      // ─── Platform label detector ───────────────────────────────────────────
+      const hasAiLabel = extracted.hasAiLabel ?? false
+      const platformLabelResult: DetectorResult = hasAiLabel
+        ? {
+            score: 95,
+            label: lang === 'en'
+              ? `Platform flagged as AI-generated`
+              : `Plataforma identificou como gerado por IA`,
+            passed: false,
+          }
+        : {
+            score: 0,
+            label: lang === 'en' ? 'No platform AI label detected' : 'Nenhum rótulo IA da plataforma',
+            passed: true,
+            abstained: true,
+          }
+
+      // Build full raw scores and breakdown
+      const rawScores = {
+        symmetry:      scores.symmetry,
+        stats:         scores.stats,
+        fft:           scores.fft,
+        texture:       scores.texture,
+        shadow:        scores.shadow,
+        ela:           scores.ela,
+        gradient:      scores.gradient,
+        exif:          scores.exif,
+        noise:         scores.noise,
+        temporal:      temporalResult.score,
+        platformLabel: platformLabelResult.score,
+        hive:          scores.hive,
+        sightengine:   scores.sightengine,
+        transformers:  scores.transformers,
+      }
+
+      const rawBreakdown: AnalysisResult['breakdown'] = {
+        symmetry:      breakdown.symmetry,
+        stats:         breakdown.stats,
+        fft:           breakdown.fft,
+        texture:       breakdown.texture,
+        shadow:        breakdown.shadow,
+        ela:           breakdown.ela,
+        gradient:      breakdown.gradient,
+        exif:          breakdown.exif as DetectorResult,
+        noise:         breakdown.noise as DetectorResult,
+        temporal:      temporalResult,
+        platformLabel: platformLabelResult,
+        hive:          breakdown.hive,
+        sightengine:   breakdown.sightengine,
+        transformers:  breakdown.transformers,
+      }
+
+      const { score, effectiveBreakdown } = computeFinalScore(rawScores, rawBreakdown, lang)
       const { verdict, confidence } = computeVerdict(score)
 
       const result: AnalysisResult = {

@@ -11,6 +11,9 @@ import { statsAnalyzer } from '../analyzers/stats'
 import { hiveAnalyzer } from '../analyzers/hive'
 import { sightengineAnalyzer } from '../analyzers/sightengine'
 import { transformersAnalyzer } from '../analyzers/transformers'
+import { exifAnalyzer } from '../analyzers/exif'
+import { noiseAnalyzer } from '../analyzers/noise'
+import { temporalAnalyzer } from '../analyzers/temporal'
 import { computeFinalScore, computeVerdict, AnalysisResult, Lang } from '../types'
 import { rateLimitMiddleware } from '../middleware/rateLimit'
 
@@ -47,6 +50,8 @@ analyzeRouter.post(
       return
     }
 
+    const isVideo = req.file?.mimetype.startsWith('video') ?? false
+
     try {
       // Run all analyzers in parallel
       const [
@@ -60,6 +65,8 @@ analyzeRouter.post(
         hiveResult,
         sightengineResult,
         transformersResult,
+        exifResult,
+        noiseResult,
       ] = await Promise.all([
         elaAnalyzer(buffer, lang),
         gradientAnalyzer(buffer, lang),
@@ -71,32 +78,53 @@ analyzeRouter.post(
         hiveAnalyzer(buffer, lang),
         sightengineAnalyzer(buffer, lang),
         transformersAnalyzer(buffer, lang),
+        exifAnalyzer(buffer, lang),
+        noiseAnalyzer(buffer, lang),
       ])
 
+      // Temporal: not applicable for single-image upload (always skipped)
+      const temporalResult = await temporalAnalyzer([buffer], lang)
+
+      // Platform label: not applicable for direct uploads
+      const platformLabelResult = {
+        score: 0,
+        label: lang === 'en' ? 'Not applicable for uploads' : 'Não aplicável para uploads',
+        passed: true,
+        abstained: true,
+      }
+
       const rawScores = {
-        symmetry:     symmetryResult.score,
-        stats:        statsResult.score,
-        fft:          fftResult.score,
-        texture:      textureResult.score,
-        shadow:       shadowResult.score,
-        ela:          elaResult.score,
-        gradient:     gradientResult.score,
-        hive:         hiveResult.score,
-        sightengine:  sightengineResult.score,
-        transformers: transformersResult.score,
+        symmetry:      symmetryResult.score,
+        stats:         statsResult.score,
+        fft:           fftResult.score,
+        texture:       textureResult.score,
+        shadow:        shadowResult.score,
+        ela:           elaResult.score,
+        gradient:      gradientResult.score,
+        exif:          exifResult.score,
+        noise:         noiseResult.score,
+        temporal:      temporalResult.score,
+        platformLabel: platformLabelResult.score,
+        hive:          hiveResult.score,
+        sightengine:   sightengineResult.score,
+        transformers:  transformersResult.score,
       }
 
       const rawBreakdown: AnalysisResult['breakdown'] = {
-        symmetry:    symmetryResult,
-        stats:       statsResult,
-        fft:         fftResult,
-        texture:     textureResult,
-        shadow:      shadowResult,
-        ela:         elaResult,
-        gradient:    gradientResult,
-        hive:        hiveResult,
-        sightengine: sightengineResult,
-        transformers: transformersResult,
+        symmetry:      symmetryResult,
+        stats:         statsResult,
+        fft:           fftResult,
+        texture:       textureResult,
+        shadow:        shadowResult,
+        ela:           elaResult,
+        gradient:      gradientResult,
+        exif:          exifResult,
+        noise:         noiseResult,
+        temporal:      temporalResult,
+        platformLabel: platformLabelResult,
+        hive:          hiveResult,
+        sightengine:   sightengineResult,
+        transformers:  transformersResult,
       }
 
       const { score, effectiveBreakdown } = computeFinalScore(rawScores, rawBreakdown, lang)
@@ -116,7 +144,7 @@ analyzeRouter.post(
         },
         meta: {
           processedAt: new Date().toISOString(),
-          mediaType: req.file?.mimetype.startsWith('video') ? 'video' : 'image',
+          mediaType: isVideo ? 'video' : 'image',
           sourceUrl,
         },
       }

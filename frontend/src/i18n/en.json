@@ -73,6 +73,10 @@
     "shadow": "Shadow Consistency",
     "ela": "Error Level Analysis",
     "gradient": "Gradient Map",
+    "exif": "EXIF Metadata",
+    "noise": "Noise Pattern",
+    "temporal": "Temporal Consistency",
+    "platformLabel": "Platform AI Label",
     "hive": "Hive Moderation API",
     "sightengine": "Sightengine API",
     "transformers": "Local Model (Transformers.js)"

@@ -26,8 +26,7 @@ async function getClassifier(): Promise<HFPipeline> {
   env.useBrowserCache = false
 
   classifier = await pipeline('image-classification', MODEL_ID, {
-    // @ts-expect-error — 'cpu' typing depends on package version
-    device: 'cpu',
+    device: 'cpu' as never,
   }) as HFPipeline
 
   return classifier

@@ -7,6 +7,7 @@ export interface DetectorResult {
   label: string
   passed: boolean
   abstained?: boolean
+  skipped?: boolean
   hotspots?: number
   edgeDensity?: number
 }
@@ -17,16 +18,20 @@ export interface AnalysisResult {
   score: number
   confidence: Confidence
   breakdown: {
-    symmetry:    DetectorResult
-    stats:       DetectorResult
-    fft:         DetectorResult
-    texture:     DetectorResult
-    shadow:      DetectorResult
-    ela:         DetectorResult
-    gradient:    DetectorResult
-    hive:         DetectorResult
-    sightengine:  DetectorResult
-    transformers: DetectorResult
+    symmetry:      DetectorResult
+    stats:         DetectorResult
+    fft:           DetectorResult
+    texture:       DetectorResult
+    shadow:        DetectorResult
+    ela:           DetectorResult
+    gradient:      DetectorResult
+    exif:          DetectorResult
+    noise:         DetectorResult
+    temporal:      DetectorResult
+    platformLabel: DetectorResult
+    hive:          DetectorResult
+    sightengine:   DetectorResult
+    transformers:  DetectorResult
   }
   visualizations: {
     elaMap:      string

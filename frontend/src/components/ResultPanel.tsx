@@ -8,9 +8,13 @@ import { DetectorCard } from './DetectorCard'
 import { AdSlot } from './AdSlot'
 import { AnalysisResult } from '../types'
 
-const DETECTOR_KEYS = [
-  'symmetry', 'stats', 'fft', 'texture', 'shadow', 'ela', 'gradient', 'hive', 'sightengine', 'transformers',
+const ALL_DETECTOR_KEYS = [
+  'symmetry', 'stats', 'fft', 'texture', 'shadow', 'ela', 'gradient',
+  'exif', 'noise', 'temporal', 'platformLabel',
+  'hive', 'sightengine', 'transformers',
 ] as const
+
+type DetectorKey = typeof ALL_DETECTOR_KEYS[number]
 
 type VizKey = 'elaMap' | 'gradientMap' | 'fftSpectrum' | 'shadowViz'
 
@@ -37,7 +41,7 @@ function exportPDF(result: AnalysisResult) {
   doc.text(`Analyzed: ${new Date(result.meta.processedAt).toLocaleString()}`, 20, 65)
   doc.setFontSize(10)
   let y = 80
-  for (const key of DETECTOR_KEYS) {
+  for (const key of ALL_DETECTOR_KEYS) {
     const d = result.breakdown[key]
     if (d) {
       doc.text(`${key}: ${d.score}% — ${d.label}`, 20, y)
@@ -167,9 +171,13 @@ export function ResultPanel() {
         <div>
           <h3 className="text-white font-semibold mb-4">{t('result.detectors')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {DETECTOR_KEYS.map((key, i) => {
-              const det = result.breakdown[key]
+            {ALL_DETECTOR_KEYS.map((key, i) => {
+              const det = result.breakdown[key as DetectorKey]
               if (!det) return null
+              // Hide temporal if it was skipped (image analysis)
+              if (key === 'temporal' && det.skipped) return null
+              // Hide platformLabel if not from a social URL
+              if (key === 'platformLabel' && !result.meta.sourceUrl && det.abstained) return null
               return <DetectorCard key={key} name={key} result={det} index={i} />
             })}
           </div>

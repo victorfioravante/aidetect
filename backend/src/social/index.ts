@@ -14,6 +14,7 @@ export interface ExtractedMedia {
   thumbnailUrl?: string   // preview to show in frontend
   title?: string
   authorName?: string
+  hasAiLabel?: boolean    // platform explicitly labelled this as AI-generated
 }
 
 export function detectPlatform(url: string): SocialPlatform | null {
