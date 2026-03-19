@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Analysis {
+  id          String   @id @default(uuid())
+  verdict     String
+  score       Int
+  confidence  String
+  breakdown   Json
+  visualizations Json
+  meta        Json
+  ipHash      String
+  createdAt   DateTime @default(now())
+
+  sharedResult SharedResult?
+}
+
+model SharedResult {
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  analysisId String   @unique
+  analysis   Analysis @relation(fields: [analysisId], references: [id])
+  createdAt  DateTime @default(now())
+}

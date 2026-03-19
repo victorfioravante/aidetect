@@ -1,0 +1,97 @@
+{
+  "app": {
+    "name": "AIDetect.pro",
+    "tagline": "Detecte mídia gerada por IA em segundos"
+  },
+  "nav": {
+    "howItWorks": "Como Funciona",
+    "api": "API"
+  },
+  "hero": {
+    "title": "Detecte Mídia Gerada por IA",
+    "subtitle": "Analise imagens e vídeos para identificar se foram criados ou manipulados por inteligência artificial",
+    "badge": "Tecnologia avançada de detecção"
+  },
+  "tabs": {
+    "upload": "Upload",
+    "link": "Link Social",
+    "video": "Vídeo"
+  },
+  "upload": {
+    "title": "Arraste e solte sua imagem aqui",
+    "subtitle": "ou clique para selecionar",
+    "btn": "Selecionar Arquivo",
+    "formats": "JPG, PNG, WebP, GIF • Máx 10MB"
+  },
+  "link": {
+    "placeholder": "Cole o link do Instagram, TikTok, Twitter...",
+    "btn": "Analisar Link"
+  },
+  "video": {
+    "title": "Arraste e solte seu vídeo aqui",
+    "subtitle": "ou clique para selecionar",
+    "btn": "Selecionar Vídeo",
+    "formats": "MP4, MOV, AVI • Máx 50MB"
+  },
+  "analyze": {
+    "btn": "Analisar",
+    "analyzing": "Analisando..."
+  },
+  "result": {
+    "title": "Resultado da Análise",
+    "verdict": {
+      "ai": "IA DETECTADA",
+      "suspicious": "SUSPEITO",
+      "authentic": "AUTÊNTICO"
+    },
+    "confidence": "Confiança",
+    "detectors": "Detalhes dos Detectores",
+    "export": "Exportar PDF",
+    "share": "Compartilhar",
+    "score": "Pontuação de IA"
+  },
+  "detectors": {
+    "rotation": "Assimetria/Rotação",
+    "stats": "Estatística de Pixels",
+    "fft": "Análise de Frequência",
+    "texture": "Análise de Textura",
+    "shadow": "Consistência de Sombras",
+    "ela": "Error Level Analysis",
+    "hive": "Hive Moderation API"
+  },
+  "viz": {
+    "ela": "Mapa ELA",
+    "fft": "Espectro FFT",
+    "gradient": "Mapa de Gradiente"
+  },
+  "limit": {
+    "reached": "Limite diário atingido",
+    "resetAt": "Redefine em",
+    "countdown": "Tente novamente em"
+  },
+  "pricing": {
+    "title": "Planos",
+    "subtitle": "Escolha o plano ideal para você",
+    "free": "Grátis",
+    "starter": "Starter",
+    "pro": "Pro"
+  },
+  "errors": {
+    "fileTooBig": "Arquivo muito grande. Máximo permitido: 10MB",
+    "unsupportedFormat": "Formato não suportado. Use JPG, PNG, WebP ou GIF",
+    "invalidUrl": "URL inválida. Verifique o link e tente novamente",
+    "platformNotSupported": "Plataforma não suportada. Use Instagram, TikTok ou Twitter",
+    "analysisError": "Erro na análise. Tente novamente",
+    "networkError": "Erro de conexão. Verifique sua internet"
+  },
+  "confidence": {
+    "HIGH": "Alta",
+    "MEDIUM": "Média",
+    "LOW": "Baixa"
+  },
+  "verdict": {
+    "AI_GENERATED": "IA Detectada",
+    "SUSPICIOUS": "Suspeito",
+    "AUTHENTIC": "Autêntico"
+  }
+}

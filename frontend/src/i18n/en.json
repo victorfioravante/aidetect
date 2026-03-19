@@ -1,0 +1,97 @@
+{
+  "app": {
+    "name": "AIDetect.pro",
+    "tagline": "Detect AI-generated media in seconds"
+  },
+  "nav": {
+    "howItWorks": "How It Works",
+    "api": "API"
+  },
+  "hero": {
+    "title": "Detect AI-Generated Media",
+    "subtitle": "Analyze images and videos to identify if they were created or manipulated by artificial intelligence",
+    "badge": "Advanced detection technology"
+  },
+  "tabs": {
+    "upload": "Upload",
+    "link": "Social Link",
+    "video": "Video"
+  },
+  "upload": {
+    "title": "Drag and drop your image here",
+    "subtitle": "or click to select",
+    "btn": "Select File",
+    "formats": "JPG, PNG, WebP, GIF • Max 10MB"
+  },
+  "link": {
+    "placeholder": "Paste Instagram, TikTok, Twitter link...",
+    "btn": "Analyze Link"
+  },
+  "video": {
+    "title": "Drag and drop your video here",
+    "subtitle": "or click to select",
+    "btn": "Select Video",
+    "formats": "MP4, MOV, AVI • Max 50MB"
+  },
+  "analyze": {
+    "btn": "Analyze",
+    "analyzing": "Analyzing..."
+  },
+  "result": {
+    "title": "Analysis Result",
+    "verdict": {
+      "ai": "AI DETECTED",
+      "suspicious": "SUSPICIOUS",
+      "authentic": "AUTHENTIC"
+    },
+    "confidence": "Confidence",
+    "detectors": "Detector Details",
+    "export": "Export PDF",
+    "share": "Share",
+    "score": "AI Score"
+  },
+  "detectors": {
+    "rotation": "Asymmetry/Rotation",
+    "stats": "Pixel Statistics",
+    "fft": "Frequency Analysis",
+    "texture": "Texture Analysis",
+    "shadow": "Shadow Consistency",
+    "ela": "Error Level Analysis",
+    "hive": "Hive Moderation API"
+  },
+  "viz": {
+    "ela": "ELA Map",
+    "fft": "FFT Spectrum",
+    "gradient": "Gradient Map"
+  },
+  "limit": {
+    "reached": "Daily limit reached",
+    "resetAt": "Resets at",
+    "countdown": "Try again in"
+  },
+  "pricing": {
+    "title": "Plans",
+    "subtitle": "Choose the ideal plan for you",
+    "free": "Free",
+    "starter": "Starter",
+    "pro": "Pro"
+  },
+  "errors": {
+    "fileTooBig": "File too large. Maximum allowed: 10MB",
+    "unsupportedFormat": "Unsupported format. Use JPG, PNG, WebP or GIF",
+    "invalidUrl": "Invalid URL. Check the link and try again",
+    "platformNotSupported": "Platform not supported. Use Instagram, TikTok or Twitter",
+    "analysisError": "Analysis error. Please try again",
+    "networkError": "Connection error. Check your internet"
+  },
+  "confidence": {
+    "HIGH": "High",
+    "MEDIUM": "Medium",
+    "LOW": "Low"
+  },
+  "verdict": {
+    "AI_GENERATED": "AI Detected",
+    "SUSPICIOUS": "Suspicious",
+    "AUTHENTIC": "Authentic"
+  }
+}
