@@ -104,18 +104,41 @@ export function computeFinalScore(
   const effectiveBreakdown = { ...breakdown }
 
   // ─── 1. TRANSFORMERS HEURISTIC ─────────────────────────────────────────────
+  // When EXIF confirms a real camera (score < 20), shadow gets a lower weight
+  // because high-contrast scenes naturally produce inconsistent shadow directions.
+  // The heuristic is also capped at 55 to prevent false AI_GENERATED verdicts
+  // on real photos that happen to have high shadow/ELA scores.
   if (breakdown.transformers.abstained) {
-    const heuristic = Math.round(
-      rawScores.shadow * 0.40 +
-      rawScores.ela    * 0.35 +
-      rawScores.fft    * 0.25
+    const exifScore = breakdown.exif?.score ?? 50
+    const hasConfirmedCamera = exifScore < 20
+
+    const shadowWeight = hasConfirmedCamera ? 0.15 : 0.40
+    const elaWeight    = 0.35
+    const fftWeight    = 0.25
+    const exifModerate = hasConfirmedCamera ? 0.25 : 0.00
+
+    let heuristic = Math.round(
+      rawScores.shadow * shadowWeight +
+      rawScores.ela    * elaWeight +
+      rawScores.fft    * fftWeight
     )
+    // When EXIF moderates (confirms real camera): blend in inverse EXIF score
+    // to further pull heuristic down, and hard-cap at 55.
+    if (hasConfirmedCamera) {
+      heuristic = Math.round(heuristic * (1 - exifModerate) + 0 * exifModerate)
+      heuristic = Math.min(heuristic, 55)
+    }
+
     effectiveScores.transformers = heuristic
     effectiveBreakdown.transformers = {
       score: heuristic,
       label: lang === 'en'
-        ? `Local heuristic (shadow+ELA+FFT) — model unavailable`
-        : `Heurística local (shadow+ELA+FFT) — modelo indisponível`,
+        ? hasConfirmedCamera
+          ? `Local heuristic (EXIF-moderated) — model unavailable`
+          : `Local heuristic (shadow+ELA+FFT) — model unavailable`
+        : hasConfirmedCamera
+          ? `Heurística local (moderada por EXIF) — modelo indisponível`
+          : `Heurística local (shadow+ELA+FFT) — modelo indisponível`,
       passed: heuristic < 50,
     }
   }
@@ -166,28 +189,51 @@ export function computeFinalScore(
 
   // ─── 3. OVERRIDE RULES ────────────────────────────────────────────────────
 
+  const exifScore = breakdown.exif?.score ?? 50
+  // EXIF score < 20 means real camera metadata was confirmed
+  const hasConfirmedCamera = !breakdown.exif?.abstained && exifScore < 20
+
   // Platform explicitly labelled this as AI-generated
   if (!breakdown.platformLabel.abstained && breakdown.platformLabel.score >= 95) {
     score = Math.max(score, 85)
   }
 
-  // Shadow >85 + ELA >70 → clearly suspicious
-  if (breakdown.shadow.score > 85 && breakdown.ela.score > 70) {
-    score = Math.max(score, 65)
+  // EXIF explicitly found AI software — very strong signal
+  if (!breakdown.exif.abstained && breakdown.exif.score >= 80) {
+    score = Math.max(score, 80)
   }
-  // Shadow >95 + ELA >75 → very high confidence AI
-  if (breakdown.shadow.score > 95 && breakdown.ela.score > 75) {
-    score = Math.max(score, 72)
+
+  // Shadow+ELA overrides: ONLY fire when EXIF has NOT confirmed a real camera.
+  // Real photos in high-contrast scenes (window vs dark room, etc.) naturally
+  // produce inconsistent shadow directions and ELA artifacts from recompression.
+  if (!hasConfirmedCamera) {
+    if (breakdown.shadow.score > 85 && breakdown.ela.score > 70) {
+      score = Math.max(score, 65)
+    }
+    if (breakdown.shadow.score > 95 && breakdown.ela.score > 75) {
+      score = Math.max(score, 72)
+    }
   }
-  // 3+ local detectors above 70 → consensus signal
-  const highCount = Object.values(breakdown).filter((d) => !d.skipped && !d.abstained && d.score > 70).length
-  if (highCount >= 3) {
+
+  // 3+ detectors > 70 → consensus signal.
+  // Exclude shadow and gradient: both have high false-positive rates on
+  // high-contrast scenes and uniform-background real photos.
+  // Also exclude purely external/dynamic detectors.
+  const NOISY_DETECTORS = new Set(['shadow', 'gradient', 'platformLabel', 'temporal', 'hive', 'sightengine'])
+  const highScoreDetectors = (Object.entries(breakdown) as [string, DetectorResult][])
+    .filter(([key, d]) => !NOISY_DETECTORS.has(key) && !d.skipped && !d.abstained && d.score > 70)
+  if (highScoreDetectors.length >= 3) {
     score = Math.max(score, 60)
   }
 
-  // EXIF explicitly found AI software
-  if (!breakdown.exif.abstained && breakdown.exif.score >= 80) {
-    score = Math.max(score, 80)
+  // If EXIF confirmed real camera, hard-cap score at 65 unless platform/EXIF software override
+  // was already applied — those are authoritative signals.
+  if (hasConfirmedCamera) {
+    const platformOverrideApplied = !breakdown.platformLabel.abstained && breakdown.platformLabel.score >= 95
+    const exifSoftwareOverrideApplied = breakdown.exif.score >= 80
+    if (!platformOverrideApplied && !exifSoftwareOverrideApplied) {
+      score = Math.min(score, 55)
+    }
   }
 
   return { score: Math.min(100, score), effectiveBreakdown }

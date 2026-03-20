@@ -54,8 +54,19 @@ export async function shadowAnalyzer(buffer: Buffer, lang: string): Promise<{
     const R = Math.sqrt(sinMean ** 2 + cosMean ** 2)
     const angularVariance = 1 - R
 
+    // Compute global pixel stddev to detect high-contrast scenes.
+    // High-contrast real photos (bright window + dark room, stage lighting, etc.)
+    // naturally produce inconsistent gradient directions across regions —
+    // they should NOT be flagged as AI. Cap shadow score at 70 for such scenes.
+    const pixelCount = data.length
+    const pixelMean = (data as unknown as number[]).reduce((s: number, v: number) => s + v, 0) / pixelCount
+    const pixelVar = (data as unknown as number[]).reduce((s: number, v: number) => s + (v - pixelMean) ** 2, 0) / pixelCount
+    const pixelStdDev = Math.sqrt(pixelVar)
+    const isHighContrast = pixelStdDev > 80
+
     // High variance → inconsistent lighting → likely AI
-    const score = Math.min(100, Math.round(angularVariance * 100 * 1.5))
+    const rawShadowScore = Math.min(100, Math.round(angularVariance * 100 * 1.5))
+    const score = isHighContrast ? Math.min(rawShadowScore, 70) : rawShadowScore
 
     // --- Build visualization ---
     // Greyscale thumbnail at VIZ_SIZE
