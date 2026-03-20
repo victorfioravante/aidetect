@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express'
 import multer from 'multer'
+import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { elaAnalyzer } from '../analyzers/ela'
 import { gradientAnalyzer } from '../analyzers/gradient'
@@ -26,20 +27,31 @@ const ACCEPTED_MIMETYPES = new Set([
   'image/gif',
   'image/heic',
   'image/heif',
+  'image/heic-sequence', // some iOS versions report this for HEIC
   'image/avif',
   'video/mp4',
   'video/quicktime',
   'video/x-msvideo',
 ])
 
+// Extensions that are always allowed regardless of reported MIME type.
+// Safari and some iOS browsers report HEIC as 'application/octet-stream'
+// or even '' (empty string), so we also check the original filename extension.
+const ACCEPTED_EXTENSIONS = new Set([
+  '.jpg', '.jpeg', '.png', '.webp', '.gif',
+  '.heic', '.heif', '.avif',
+  '.mp4', '.mov', '.avi',
+])
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 30 * 1024 * 1024 }, // 30 MB
   fileFilter: (_req, file, cb) => {
-    // Some browsers/OS report HEIC as 'image/heic' or 'image/heif'; others as
-    // 'application/octet-stream'. Accept both and let sharp handle the conversion.
     const mime = file.mimetype.toLowerCase()
-    cb(null, ACCEPTED_MIMETYPES.has(mime) || mime === 'application/octet-stream')
+    const ext  = path.extname(file.originalname).toLowerCase()
+    const allowed = ACCEPTED_MIMETYPES.has(mime) || ACCEPTED_EXTENSIONS.has(ext) || mime === 'application/octet-stream'
+    console.log('[upload] mimetype:', mime, '| ext:', ext, '| allowed:', allowed)
+    cb(null, allowed)
   },
 })
 

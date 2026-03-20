@@ -66,16 +66,23 @@ export async function shadowAnalyzer(
     const pixelMean = (data as unknown as number[]).reduce((s: number, v: number) => s + v, 0) / pixelCount
     const pixelVar = (data as unknown as number[]).reduce((s: number, v: number) => s + (v - pixelMean) ** 2, 0) / pixelCount
     const pixelStdDev = Math.sqrt(pixelVar)
-    const isHighContrast = pixelStdDev > 80
-
-    console.log('[shadow] pixelStdDev:', pixelStdDev.toFixed(2), '| highContrast cap applied:', isHighContrast, '| hasConfirmedCamera:', options?.hasConfirmedCamera ?? false)
 
     // High variance → inconsistent lighting → likely AI
-    const rawShadowScore = Math.min(100, Math.round(angularVariance * 100 * 1.5))
-    // Cap 1: high-contrast scenes (bright window + dark room, stage lighting) cap at 70
-    const afterContrastCap = isHighContrast ? Math.min(rawShadowScore, 70) : rawShadowScore
-    // Cap 2: EXIF-confirmed real camera — real multi-source lighting is not AI evidence; cap at 60
-    const score = options?.hasConfirmedCamera ? Math.min(afterContrastCap, 60) : afterContrastCap
+    // Use `let` so caps are applied sequentially; the value returned is ALWAYS
+    // the final capped result — there is no separate rawShadowScore in scope.
+    let score = Math.min(100, Math.round(angularVariance * 100 * 1.5))
+    // Cap 1: high-contrast scenes (bright window + dark room) cap at 70
+    if (pixelStdDev > 80) score = Math.min(score, 70)
+    // Cap 2: EXIF-confirmed real camera — multi-source lighting in real photos
+    // is not evidence of AI; cap at 60
+    if (options?.hasConfirmedCamera) score = Math.min(score, 60)
+
+    console.log(
+      '[shadow] pixelStdDev:', pixelStdDev.toFixed(2),
+      '| highContrast cap (>80→70):', pixelStdDev > 80,
+      '| hasConfirmedCamera:', options?.hasConfirmedCamera ?? false,
+      '| finalScore:', score,
+    )
 
     // --- Build visualization ---
     // Greyscale thumbnail at VIZ_SIZE
