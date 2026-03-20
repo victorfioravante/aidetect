@@ -8,7 +8,11 @@ const VIZ_SIZE = 192 // divisible by 3 for 3x3 grid
  * AI images often have inconsistent light direction across regions.
  * Estimates gradient direction in a 3x3 grid and generates an overlay visualization.
  */
-export async function shadowAnalyzer(buffer: Buffer, lang: string): Promise<{
+export async function shadowAnalyzer(
+  buffer: Buffer,
+  lang: string,
+  options?: { hasConfirmedCamera?: boolean },
+): Promise<{
   result: DetectorResult
   shadowViz: string
 }> {
@@ -64,9 +68,14 @@ export async function shadowAnalyzer(buffer: Buffer, lang: string): Promise<{
     const pixelStdDev = Math.sqrt(pixelVar)
     const isHighContrast = pixelStdDev > 80
 
+    console.log('[shadow] pixelStdDev:', pixelStdDev.toFixed(2), '| highContrast cap applied:', isHighContrast, '| hasConfirmedCamera:', options?.hasConfirmedCamera ?? false)
+
     // High variance → inconsistent lighting → likely AI
     const rawShadowScore = Math.min(100, Math.round(angularVariance * 100 * 1.5))
-    const score = isHighContrast ? Math.min(rawShadowScore, 70) : rawShadowScore
+    // Cap 1: high-contrast scenes (bright window + dark room, stage lighting) cap at 70
+    const afterContrastCap = isHighContrast ? Math.min(rawShadowScore, 70) : rawShadowScore
+    // Cap 2: EXIF-confirmed real camera — real multi-source lighting is not AI evidence; cap at 60
+    const score = options?.hasConfirmedCamera ? Math.min(afterContrastCap, 60) : afterContrastCap
 
     // --- Build visualization ---
     // Greyscale thumbnail at VIZ_SIZE

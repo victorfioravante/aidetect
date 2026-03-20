@@ -6,7 +6,11 @@ import { DetectorResult } from '../types'
  * AI images often have unnaturally smooth or repetitive gradient patterns.
  * We compute the Sobel gradient magnitude and analyze its distribution.
  */
-export async function gradientAnalyzer(buffer: Buffer, lang: string): Promise<{
+export async function gradientAnalyzer(
+  buffer: Buffer,
+  lang: string,
+  options?: { hasConfirmedCamera?: boolean },
+): Promise<{
   result: DetectorResult & { edgeDensity?: number }
   gradientMap: string
 }> {
@@ -63,7 +67,10 @@ export async function gradientAnalyzer(buffer: Buffer, lang: string): Promise<{
     const blockVariance = blockDensities.reduce((s, v) => s + (v - blockMean) ** 2, 0) / blockDensities.length
 
     // Low variance in block densities → AI (too uniform edges)
-    const score = computeGradientAIScore(avgMag, edgeDensity, blockVariance)
+    const rawScore = computeGradientAIScore(avgMag, edgeDensity, blockVariance)
+    // Photos of geometric scenes (walls, doors, furniture) have naturally uniform
+    // edges — this is NOT an AI signal. Cap at 50 when EXIF confirms a real camera.
+    const score = options?.hasConfirmedCamera ? Math.min(rawScore, 50) : rawScore
 
     // Apply colormap: dark-blue → cyan → yellow → white
     const rgbData = Buffer.alloc(width * height * 3)

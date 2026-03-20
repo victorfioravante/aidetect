@@ -82,9 +82,14 @@ analyzeRouter.post(
     }
 
     try {
-      // Run all analyzers in parallel.
-      // exifAnalyzer uses rawBuffer to preserve original EXIF fields;
-      // everything else uses the normalized JPEG buffer.
+      // ── Phase 1: EXIF (must run first so ELA/gradient/shadow can be moderated) ──
+      // Uses rawBuffer to read native EXIF before any format conversion.
+      const exifResult = await exifAnalyzer(rawBuffer, lang)
+      // score < 20 means EXIF strongly confirms a real camera (make/model/GPS present, no AI software)
+      const hasConfirmedCamera = exifResult.score < 20
+
+      // ── Phase 2: all remaining analyzers in parallel ──
+      // ELA, gradient, shadow receive hasConfirmedCamera to apply false-positive caps.
       const [
         { result: elaResult, elaMap },
         { result: gradientResult, gradientMap },
@@ -96,20 +101,18 @@ analyzeRouter.post(
         hiveResult,
         sightengineResult,
         transformersResult,
-        exifResult,
         noiseResult,
       ] = await Promise.all([
-        elaAnalyzer(buffer, lang),
-        gradientAnalyzer(buffer, lang),
+        elaAnalyzer(buffer, lang, { hasConfirmedCamera }),
+        gradientAnalyzer(buffer, lang, { hasConfirmedCamera }),
         textureAnalyzer(buffer, lang),
         fftAnalyzer(buffer, lang),
-        shadowAnalyzer(buffer, lang),
+        shadowAnalyzer(buffer, lang, { hasConfirmedCamera }),
         symmetryAnalyzer(buffer, lang),
         statsAnalyzer(buffer, lang),
         hiveAnalyzer(buffer, lang),
         sightengineAnalyzer(buffer, lang),
         transformersAnalyzer(buffer, lang),
-        exifAnalyzer(rawBuffer, lang),   // original buffer → real EXIF metadata
         noiseAnalyzer(buffer, lang),
       ])
 

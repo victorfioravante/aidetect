@@ -6,7 +6,11 @@ import { DetectorResult } from '../types'
  * Re-compresses the image at low quality and measures pixel-level differences.
  * Uniform flat regions = AI-generated. High variance in natural images.
  */
-export async function elaAnalyzer(buffer: Buffer, lang: string): Promise<{
+export async function elaAnalyzer(
+  buffer: Buffer,
+  lang: string,
+  options?: { hasConfirmedCamera?: boolean },
+): Promise<{
   result: DetectorResult & { hotspots?: number }
   elaMap: string
 }> {
@@ -46,8 +50,11 @@ export async function elaAnalyzer(buffer: Buffer, lang: string): Promise<{
     const normalizedVariance = Math.min(variance / 50, 1)
 
     // Low variance → more likely AI; hotspots > 15% boosts score
-    let score = Math.round((1 - normalizedVariance) * 80)
-    if (hotspots > 0.15) score = Math.min(100, score + 20)
+    let rawElaScore = Math.round((1 - normalizedVariance) * 80)
+    if (hotspots > 0.15) rawElaScore = Math.min(100, rawElaScore + 20)
+    // HEIC→JPEG conversion (and any re-encoding) introduces artificial ELA noise.
+    // Cap at 55 when EXIF confirms a real camera to avoid false positives.
+    const score = options?.hasConfirmedCamera ? Math.min(rawElaScore, 55) : rawElaScore
 
     // Apply hot colormap: 0→black, 85→red, 170→yellow, 255→white
     const rgbData = Buffer.alloc(info.width * info.height * 3)

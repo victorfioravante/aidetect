@@ -77,9 +77,13 @@ interface FrameAnalysis {
 
 async function analyzeImageBuffer(rawBuffer: Buffer, lang: Lang): Promise<FrameAnalysis> {
   // Normalize to JPEG for consistent processing (handles HEIC/HEIF/AVIF from social platforms).
-  // Keep rawBuffer for exifAnalyzer so original EXIF fields survive conversion.
   const buffer = await normalizeBuffer(rawBuffer)
 
+  // Phase 1: EXIF first — must know hasConfirmedCamera before running ELA/gradient/shadow
+  const exifResult = await exifAnalyzer(rawBuffer, lang)
+  const hasConfirmedCamera = exifResult.score < 20
+
+  // Phase 2: all other analyzers in parallel
   const [
     { result: elaResult, elaMap },
     { result: gradientResult, gradientMap },
@@ -91,20 +95,18 @@ async function analyzeImageBuffer(rawBuffer: Buffer, lang: Lang): Promise<FrameA
     hiveResult,
     sightengineResult,
     transformersResult,
-    exifResult,
     noiseResult,
   ] = await Promise.all([
-    elaAnalyzer(buffer, lang),
-    gradientAnalyzer(buffer, lang),
+    elaAnalyzer(buffer, lang, { hasConfirmedCamera }),
+    gradientAnalyzer(buffer, lang, { hasConfirmedCamera }),
     textureAnalyzer(buffer, lang),
     fftAnalyzer(buffer, lang),
-    shadowAnalyzer(buffer, lang),
+    shadowAnalyzer(buffer, lang, { hasConfirmedCamera }),
     symmetryAnalyzer(buffer, lang),
     statsAnalyzer(buffer, lang),
     hiveAnalyzer(buffer, lang),
     sightengineAnalyzer(buffer, lang),
     transformersAnalyzer(buffer, lang),
-    exifAnalyzer(rawBuffer, lang),   // original buffer → native EXIF
     noiseAnalyzer(buffer, lang),
   ])
 
