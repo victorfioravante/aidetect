@@ -21,7 +21,7 @@
     "title": "Arraste e solte sua imagem aqui",
     "subtitle": "ou clique para selecionar",
     "btn": "Selecionar Arquivo",
-    "formats": "JPG, PNG, WebP, GIF • Máx 10MB"
+    "formats": "JPG, PNG, WebP, GIF, HEIC (iPhone) · Máx 30MB"
   },
   "link": {
     "placeholder": "Cole o link do TikTok, Instagram, Twitter ou YouTube...",

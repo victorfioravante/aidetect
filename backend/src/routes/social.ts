@@ -22,6 +22,7 @@ import { noiseAnalyzer } from '../analyzers/noise'
 import { temporalAnalyzer } from '../analyzers/temporal'
 import { computeFinalScore, weightedScore, computeVerdict, AnalysisResult, DetectorResult, Lang } from '../types'
 import { rateLimitMiddleware } from '../middleware/rateLimit'
+import { normalizeBuffer } from '../lib/imageUtils'
 
 export const socialRouter = Router()
 
@@ -74,7 +75,11 @@ interface FrameAnalysis {
   visualizations: { elaMap: string; gradientMap: string; fftSpectrum: string; shadowViz: string }
 }
 
-async function analyzeImageBuffer(buffer: Buffer, lang: Lang): Promise<FrameAnalysis> {
+async function analyzeImageBuffer(rawBuffer: Buffer, lang: Lang): Promise<FrameAnalysis> {
+  // Normalize to JPEG for consistent processing (handles HEIC/HEIF/AVIF from social platforms).
+  // Keep rawBuffer for exifAnalyzer so original EXIF fields survive conversion.
+  const buffer = await normalizeBuffer(rawBuffer)
+
   const [
     { result: elaResult, elaMap },
     { result: gradientResult, gradientMap },
@@ -99,7 +104,7 @@ async function analyzeImageBuffer(buffer: Buffer, lang: Lang): Promise<FrameAnal
     hiveAnalyzer(buffer, lang),
     sightengineAnalyzer(buffer, lang),
     transformersAnalyzer(buffer, lang),
-    exifAnalyzer(buffer, lang),
+    exifAnalyzer(rawBuffer, lang),   // original buffer → native EXIF
     noiseAnalyzer(buffer, lang),
   ])
 

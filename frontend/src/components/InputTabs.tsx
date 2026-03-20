@@ -9,7 +9,7 @@ type Tab = 'upload' | 'link' | 'video'
 
 type SocialPlatform = 'TIKTOK' | 'TWITTER' | 'INSTAGRAM' | 'YOUTUBE' | 'FACEBOOK'
 
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024
+const MAX_IMAGE_SIZE = 30 * 1024 * 1024  // 30 MB — increased for HEIC (larger than JPEG)
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024
 
 const PLATFORM_REGEX: Record<SocialPlatform, RegExp> = {
@@ -58,7 +58,15 @@ export function InputTabs() {
 
   const { getRootProps: getImageProps, getInputProps: getImageInput, isDragActive: isImageDrag } = useDropzone({
     onDrop: (f) => onDrop(f, false),
-    accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.gif'] },
+    accept: {
+      'image/jpeg':  ['.jpg', '.jpeg'],
+      'image/png':   ['.png'],
+      'image/webp':  ['.webp'],
+      'image/gif':   ['.gif'],
+      'image/heic':  ['.heic'],
+      'image/heif':  ['.heif'],
+      'image/avif':  ['.avif'],
+    },
     multiple: false,
     disabled: isLoading,
   })

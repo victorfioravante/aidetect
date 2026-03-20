@@ -21,7 +21,7 @@
     "title": "Drag and drop your image here",
     "subtitle": "or click to select",
     "btn": "Select File",
-    "formats": "JPG, PNG, WebP, GIF • Max 10MB"
+    "formats": "JPG, PNG, WebP, GIF, HEIC (iPhone) · Max 30MB"
   },
   "link": {
     "placeholder": "Paste TikTok, Instagram, Twitter or YouTube link...",

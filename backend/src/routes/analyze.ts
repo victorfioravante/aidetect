@@ -14,15 +14,32 @@ import { transformersAnalyzer } from '../analyzers/transformers'
 import { exifAnalyzer } from '../analyzers/exif'
 import { noiseAnalyzer } from '../analyzers/noise'
 import { temporalAnalyzer } from '../analyzers/temporal'
+import { normalizeBuffer } from '../lib/imageUtils'
 import { computeFinalScore, computeVerdict, AnalysisResult, Lang } from '../types'
 import { rateLimitMiddleware } from '../middleware/rateLimit'
 
+// All accepted MIME types — HEIC/HEIF/AVIF added for iPhone and modern formats
+const ACCEPTED_MIMETYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/heic',
+  'image/heif',
+  'image/avif',
+  'video/mp4',
+  'video/quicktime',
+  'video/x-msvideo',
+])
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  limits: { fileSize: 30 * 1024 * 1024 }, // 30 MB
   fileFilter: (_req, file, cb) => {
-    const allowed = /image\/(jpeg|png|webp|gif)|video\/(mp4|quicktime|x-msvideo)/
-    cb(null, allowed.test(file.mimetype))
+    // Some browsers/OS report HEIC as 'image/heic' or 'image/heif'; others as
+    // 'application/octet-stream'. Accept both and let sharp handle the conversion.
+    const mime = file.mimetype.toLowerCase()
+    cb(null, ACCEPTED_MIMETYPES.has(mime) || mime === 'application/octet-stream')
   },
 })
 
@@ -35,25 +52,39 @@ analyzeRouter.post(
   async (req: Request, res: Response): Promise<void> => {
     const lang: Lang = (req.body.lang as Lang) || 'pt'
 
-    let buffer: Buffer | null = null
+    let rawBuffer: Buffer | null = null
     const sourceUrl = req.body.url as string | undefined
 
     if (req.file) {
-      buffer = req.file.buffer
+      rawBuffer = req.file.buffer
     } else if (sourceUrl) {
       res.status(400).json({ success: false, error: 'URL extraction not yet implemented' })
       return
     }
 
-    if (!buffer) {
+    if (!rawBuffer) {
       res.status(400).json({ success: false, error: 'No file or URL provided' })
       return
     }
 
     const isVideo = req.file?.mimetype.startsWith('video') ?? false
 
+    // ── Normalize: convert HEIC/HEIF/AVIF/GIF → JPEG with orientation fix ──
+    // The original (rawBuffer) is passed to exifAnalyzer so it can read the
+    // native EXIF before sharp strips the orientation tag.
+    // All other analyzers receive the normalized JPEG.
+    let buffer: Buffer
     try {
-      // Run all analyzers in parallel
+      buffer = isVideo ? rawBuffer : await normalizeBuffer(rawBuffer)
+    } catch {
+      res.status(422).json({ success: false, error: 'Unsupported image format', code: 'UNSUPPORTED_FORMAT' })
+      return
+    }
+
+    try {
+      // Run all analyzers in parallel.
+      // exifAnalyzer uses rawBuffer to preserve original EXIF fields;
+      // everything else uses the normalized JPEG buffer.
       const [
         { result: elaResult, elaMap },
         { result: gradientResult, gradientMap },
@@ -78,7 +109,7 @@ analyzeRouter.post(
         hiveAnalyzer(buffer, lang),
         sightengineAnalyzer(buffer, lang),
         transformersAnalyzer(buffer, lang),
-        exifAnalyzer(buffer, lang),
+        exifAnalyzer(rawBuffer, lang),   // original buffer → real EXIF metadata
         noiseAnalyzer(buffer, lang),
       ])
 
