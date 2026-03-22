@@ -4,8 +4,19 @@ import { DetectorResult } from '../types'
 /**
  * Symmetry Analysis (formerly rotation.ts)
  * AI faces and generated images often have near-perfect bilateral symmetry.
- * Tests horizontal flip, vertical flip, and 90° rotation.
- * High symmetry on any axis → more likely AI-generated.
+ *
+ * Only horizontal flip (bilateral symmetry) is used as the primary signal.
+ * This is the defining pattern of AI-generated faces: they tend to be
+ * mirror-symmetric around a vertical axis. V-flip and 90° rotation were
+ * removed because they produce high false-positive rates on naturally
+ * symmetric subjects (e.g., centered portraits, objects, architecture).
+ *
+ * Scoring (linear, calibrated):
+ *   hFlipSim < 0.70 → score 0   (natural asymmetry)
+ *   hFlipSim = 0.85 → score 50  (suspicious)
+ *   hFlipSim ≥ 1.00 → score 100 (near-perfect = strong AI signal)
+ *
+ * V-flip bonus: if V-flip similarity > 0.80, adds +10 (unusual in real photos)
  */
 export async function symmetryAnalyzer(buffer: Buffer, lang: string): Promise<DetectorResult> {
   try {
@@ -16,7 +27,7 @@ export async function symmetryAnalyzer(buffer: Buffer, lang: string): Promise<De
       .raw()
       .toBuffer()
 
-    // Horizontal flip
+    // Horizontal flip — primary signal (bilateral symmetry)
     const hFlipped = await sharp(buffer)
       .resize({ width: 128, height: 128, fit: 'cover' })
       .greyscale()
@@ -25,7 +36,7 @@ export async function symmetryAnalyzer(buffer: Buffer, lang: string): Promise<De
       .raw()
       .toBuffer()
 
-    // Vertical flip
+    // Vertical flip — secondary, used only as bonus signal
     const vFlipped = await sharp(buffer)
       .resize({ width: 128, height: 128, fit: 'cover' })
       .greyscale()
@@ -34,37 +45,30 @@ export async function symmetryAnalyzer(buffer: Buffer, lang: string): Promise<De
       .raw()
       .toBuffer()
 
-    // 90° rotation
-    const rotated90 = await sharp(buffer)
-      .resize({ width: 128, height: 128, fit: 'cover' })
-      .greyscale()
-      .removeAlpha()
-      .rotate(90)
-      .resize({ width: 128, height: 128, fit: 'fill' }) // re-crop after rotate
-      .raw()
-      .toBuffer()
-
     const simH = similarity(base, hFlipped)
     const simV = similarity(base, vFlipped)
-    const simR = similarity(base, rotated90)
 
-    // Use the maximum similarity across all axes
-    const maxSim = Math.max(simH, simV, simR)
+    // Linear threshold: below 0.70 is normal for real faces/photos.
+    // AI-generated images typically score 0.85-0.99 on this metric.
+    const baseScore = Math.max(0, (simH - 0.70) / 0.30) * 100
 
-    // High similarity → very symmetric → likely AI
-    const score = Math.round(maxSim * maxSim * 100)
+    // V-flip bonus: naturally symmetric subjects almost never have high
+    // vertical symmetry. If both axes are highly symmetric, it's unusual.
+    const vBonus = simV > 0.80 ? 10 : 0
+
+    const score = Math.min(100, Math.round(baseScore + vBonus))
 
     const label = lang === 'en'
       ? score >= 70
-        ? 'Near-perfect symmetry suggests AI-generated face/object'
+        ? `Near-perfect bilateral symmetry (${Math.round(simH * 100)}%) — AI signal`
         : score >= 40
-        ? 'Above-average symmetry detected'
-        : 'Natural asymmetry detected'
+        ? `Above-average bilateral symmetry (${Math.round(simH * 100)}%)`
+        : `Natural asymmetry (${Math.round(simH * 100)}%)`
       : score >= 70
-      ? 'Simetria quase perfeita sugere rosto/objeto gerado por IA'
+      ? `Simetria bilateral quase perfeita (${Math.round(simH * 100)}%) — sinal IA`
       : score >= 40
-      ? 'Simetria acima da média detectada'
-      : 'Assimetria natural detectada'
+      ? `Simetria bilateral acima da média (${Math.round(simH * 100)}%)`
+      : `Assimetria natural (${Math.round(simH * 100)}%)`
 
     return { score, label, passed: score < 50 }
   } catch {

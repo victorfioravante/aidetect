@@ -51,33 +51,42 @@ export interface AnalysisResult {
 // Base static weights for local detectors (always active)
 // Dynamic detectors (hive, sightengine, platformLabel, temporal) start at 0
 // and are added when available.
-// Base sum: 10+8+10+10+10+8+4+15+8+7 = 90 + transformers 10 = 100 when no dynamic APIs
+// Base sum: 7+8+10+10+10+8+2+16+11+8 = 90 when no dynamic APIs
+//
+// Changes from original calibration:
+//   symmetry:    10 → 7   (reduced after formula fix; still contributes, less authority)
+//   gradient:     4 → 2   (noisiest local detector, high false-positive on real photos)
+//   noise:        8 → 11  (reliable heterogeneous-noise signal, underweighted before)
+//   exif:        15 → 16  (most authoritative single signal)
+//   transformers: 7 → 8   (ViT model is reliable when available)
 export const WEIGHTS = {
-  symmetry:      10,
+  symmetry:      7,
   stats:          8,
   fft:           10,
   texture:       10,
   shadow:        10,
   ela:            8,
-  gradient:       4,
-  exif:          15,
-  noise:          8,
+  gradient:       2,
+  exif:          16,
+  noise:         11,
   temporal:       0,   // dynamic: +10 for video
   platformLabel:  0,   // dynamic: +20 when available
   hive:           0,   // dynamic: +8 when configured
   sightengine:    0,   // dynamic: +7 when configured
-  transformers:   7,
+  transformers:   8,
 } as const
 
-// 10+8+10+10+10+8+4+15+8+0+0+0+0+7 = 90 base
-// Remaining 10 filled by temporal/platformLabel/hive/sightengine when available
+// 7+8+10+10+10+8+2+16+11+0+0+0+0+8 = 90 base
+// Remaining filled by temporal/platformLabel/hive/sightengine when available
 
 export function computeVerdict(score: number): { verdict: Verdict; confidence: Confidence } {
   if (score >= 70) {
     return { verdict: 'AI_GENERATED', confidence: score >= 85 ? 'HIGH' : 'MEDIUM' }
   }
   if (score >= 40) {
-    return { verdict: 'SUSPICIOUS', confidence: 'MEDIUM' }
+    // Score 62-69: strong suspicion (near the AI threshold)
+    // Score 40-61: weak suspicion (borderline, could go either way)
+    return { verdict: 'SUSPICIOUS', confidence: score >= 62 ? 'MEDIUM' : 'LOW' }
   }
   return { verdict: 'AUTHENTIC', confidence: score < 20 ? 'HIGH' : 'MEDIUM' }
 }
@@ -104,28 +113,27 @@ export function computeFinalScore(
   const effectiveBreakdown = { ...breakdown }
 
   // ─── 1. TRANSFORMERS HEURISTIC ─────────────────────────────────────────────
-  // When EXIF confirms a real camera (score < 20), shadow gets a lower weight
-  // because high-contrast scenes naturally produce inconsistent shadow directions.
-  // The heuristic is also capped at 55 to prevent false AI_GENERATED verdicts
-  // on real photos that happen to have high shadow/ELA scores.
+  // When the ViT model is unavailable, estimate its score from more reliable
+  // local detectors: exif + noise + fft + texture + ela.
+  //
+  // Previous heuristic used shadow+ELA+FFT, which are the detectors with the
+  // highest false-positive rates on real high-contrast photos. The new blend
+  // uses exif (most authoritative) and noise (most reliable) as primary signals.
+  //
+  // Cap at 55 when EXIF confirms a real camera to prevent false AI_GENERATED.
   if (breakdown.transformers.abstained) {
     const exifScore = breakdown.exif?.score ?? 50
     const hasConfirmedCamera = exifScore < 20
 
-    const shadowWeight = hasConfirmedCamera ? 0.15 : 0.40
-    const elaWeight    = 0.35
-    const fftWeight    = 0.25
-    const exifModerate = hasConfirmedCamera ? 0.25 : 0.00
-
     let heuristic = Math.round(
-      rawScores.shadow * shadowWeight +
-      rawScores.ela    * elaWeight +
-      rawScores.fft    * fftWeight
+      rawScores.exif    * 0.30 +
+      rawScores.noise   * 0.25 +
+      rawScores.fft     * 0.20 +
+      rawScores.texture * 0.15 +
+      rawScores.ela     * 0.10
     )
-    // When EXIF moderates (confirms real camera): blend in inverse EXIF score
-    // to further pull heuristic down, and hard-cap at 55.
+
     if (hasConfirmedCamera) {
-      heuristic = Math.round(heuristic * (1 - exifModerate) + 0 * exifModerate)
       heuristic = Math.min(heuristic, 55)
     }
 
@@ -135,10 +143,10 @@ export function computeFinalScore(
       label: lang === 'en'
         ? hasConfirmedCamera
           ? `Local heuristic (EXIF-moderated) — model unavailable`
-          : `Local heuristic (shadow+ELA+FFT) — model unavailable`
+          : `Local heuristic (EXIF+noise+FFT+texture+ELA) — model unavailable`
         : hasConfirmedCamera
           ? `Heurística local (moderada por EXIF) — modelo indisponível`
-          : `Heurística local (shadow+ELA+FFT) — modelo indisponível`,
+          : `Heurística local (EXIF+ruído+FFT+textura+ELA) — modelo indisponível`,
       passed: heuristic < 50,
     }
   }
