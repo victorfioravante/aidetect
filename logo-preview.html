@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AIDetect.pro — Logo Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #080B0F;
+      font-family: 'Space Grotesk', sans-serif;
+      color: #E8F0F8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+      padding: 48px;
+    }
+    .section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #4A6278;
+    }
+    .card {
+      background: #0E1318;
+      border: 1px solid #1E2D3D;
+      border-radius: 12px;
+      padding: 32px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card.light {
+      background: #F0F4F8;
+    }
+    .card.transparent {
+      background: repeating-conic-gradient(#1E2D3D 0% 25%, #141C24 0% 50%) 0 0 / 12px 12px;
+    }
+    .row {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+    hr {
+      width: 100%;
+      border: none;
+      border-top: 1px solid #1E2D3D;
+      max-width: 600px;
+    }
+    .sizes {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGO FULL -->
+  <div class="section">
+    <span class="label">Logo — Dark Background</span>
+    <div class="card">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 44" width="220" height="44" fill="none">
+        <defs>
+          <filter id="cyan-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2.5" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <filter id="line-glow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="1.5" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <clipPath id="grid-clip">
+            <rect x="2" y="2" width="40" height="40" rx="4" />
+          </clipPath>
+        </defs>
+        <rect x="2" y="2" width="40" height="40" rx="4" fill="#0E1318" stroke="#1E2D3D" stroke-width="1" />
+        <rect x="8"  y="8"  width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="19" y="8"  width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="30" y="8"  width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="8"  y="19" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="19" y="19" width="8" height="8" rx="1" fill="#0A1929" stroke="#00D4FF" stroke-width="0.75" />
+        <rect x="30" y="19" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="8"  y="30" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="19" y="30" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="30" y="30" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <g clip-path="url(#grid-clip)">
+          <line x1="2" y1="10" x2="34" y2="42" stroke="#00D4FF" stroke-width="2" stroke-linecap="round" filter="url(#line-glow)" opacity="0.9" />
+        </g>
+        <line x1="2"  y1="6"  x2="2"  y2="2"  stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow)" />
+        <line x1="2"  y1="2"  x2="6"  y2="2"  stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow)" />
+        <line x1="38" y1="2"  x2="42" y2="2"  stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow)" />
+        <line x1="42" y1="2"  x2="42" y2="6"  stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow)" />
+        <line x1="2"  y1="38" x2="2"  y2="42" stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow)" />
+        <line x1="2"  y1="42" x2="6"  y2="42" stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow)" />
+        <line x1="38" y1="42" x2="42" y2="42" stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow)" />
+        <line x1="42" y1="38" x2="42" y2="42" stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow)" />
+        <text x="56" y="28" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="22" letter-spacing="-0.5" fill="#E8F0F8">AIDetect</text>
+        <text x="168" y="28" font-family="'Space Grotesk', sans-serif" font-weight="500" font-size="18" fill="#4A6278">.pro</text>
+      </svg>
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- LOGO — LIGHT BACKGROUND -->
+  <div class="section">
+    <span class="label">Logo — Light Background</span>
+    <div class="card light">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 44" width="220" height="44" fill="none">
+        <defs>
+          <filter id="cyan-glow2" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <filter id="line-glow2" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="1.5" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <clipPath id="grid-clip2">
+            <rect x="2" y="2" width="40" height="40" rx="4" />
+          </clipPath>
+        </defs>
+        <rect x="2" y="2" width="40" height="40" rx="4" fill="#0E1318" stroke="#1E2D3D" stroke-width="1" />
+        <rect x="8"  y="8"  width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="19" y="8"  width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="30" y="8"  width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="8"  y="19" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="19" y="19" width="8" height="8" rx="1" fill="#0A1929" stroke="#00D4FF" stroke-width="0.75" />
+        <rect x="30" y="19" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="8"  y="30" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="19" y="30" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="30" y="30" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <g clip-path="url(#grid-clip2)">
+          <line x1="2" y1="10" x2="34" y2="42" stroke="#00D4FF" stroke-width="2" stroke-linecap="round" filter="url(#line-glow2)" />
+        </g>
+        <line x1="2"  y1="6"  x2="2"  y2="2"  stroke="#00AACC" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="2"  y1="2"  x2="6"  y2="2"  stroke="#00AACC" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="38" y1="2"  x2="42" y2="2"  stroke="#00AACC" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="42" y1="2"  x2="42" y2="6"  stroke="#00AACC" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="2"  y1="38" x2="2"  y2="42" stroke="#00AACC" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="2"  y1="42" x2="6"  y2="42" stroke="#00AACC" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="38" y1="42" x2="42" y2="42" stroke="#00AACC" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="42" y1="38" x2="42" y2="42" stroke="#00AACC" stroke-width="1.5" stroke-linecap="round" />
+        <text x="56" y="28" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="22" letter-spacing="-0.5" fill="#0E1318">AIDetect</text>
+        <text x="168" y="28" font-family="'Space Grotesk', sans-serif" font-weight="500" font-size="18" fill="#7A8FA0">.pro</text>
+      </svg>
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- FAVICON + TAMANHOS -->
+  <div class="section">
+    <span class="label">Favicon / Icon — Sizes</span>
+    <div class="card">
+      <div class="sizes">
+
+        <!-- 64px -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64" fill="none">
+            <defs>
+              <filter id="glow64">
+                <feGaussianBlur stdDeviation="1.5" result="blur" />
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <clipPath id="clip64"><rect width="32" height="32" rx="6"/></clipPath>
+            </defs>
+            <rect width="32" height="32" rx="6" fill="#0E1318"/>
+            <rect x="4"  y="4"  width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="13" y="4"  width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="22" y="4"  width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="4"  y="13" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="13" y="13" width="7" height="7" rx="1" fill="#0A1929" stroke="#00D4FF" stroke-width="0.75"/>
+            <rect x="22" y="13" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="4"  y="22" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="13" y="22" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="22" y="22" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <g clip-path="url(#clip64)">
+              <line x1="0" y1="8" x2="24" y2="32" stroke="#00D4FF" stroke-width="1.75" stroke-linecap="round" filter="url(#glow64)"/>
+            </g>
+          </svg>
+          <span style="font-size:10px;color:#4A6278;">64px</span>
+        </div>
+
+        <!-- 32px -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none">
+            <defs>
+              <filter id="glow32">
+                <feGaussianBlur stdDeviation="1.5" result="blur" />
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <clipPath id="clip32"><rect width="32" height="32" rx="6"/></clipPath>
+            </defs>
+            <rect width="32" height="32" rx="6" fill="#0E1318"/>
+            <rect x="4"  y="4"  width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="13" y="4"  width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="22" y="4"  width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="4"  y="13" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="13" y="13" width="7" height="7" rx="1" fill="#0A1929" stroke="#00D4FF" stroke-width="0.75"/>
+            <rect x="22" y="13" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="4"  y="22" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="13" y="22" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="22" y="22" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <g clip-path="url(#clip32)">
+              <line x1="0" y1="8" x2="24" y2="32" stroke="#00D4FF" stroke-width="1.75" stroke-linecap="round" filter="url(#glow32)"/>
+            </g>
+          </svg>
+          <span style="font-size:10px;color:#4A6278;">32px</span>
+        </div>
+
+        <!-- 16px -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16" fill="none">
+            <defs>
+              <filter id="glow16">
+                <feGaussianBlur stdDeviation="1.5" result="blur" />
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <clipPath id="clip16"><rect width="32" height="32" rx="6"/></clipPath>
+            </defs>
+            <rect width="32" height="32" rx="6" fill="#0E1318"/>
+            <rect x="4"  y="4"  width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="13" y="4"  width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="22" y="4"  width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="4"  y="13" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="13" y="13" width="7" height="7" rx="1" fill="#0A1929" stroke="#00D4FF" stroke-width="0.75"/>
+            <rect x="22" y="13" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="4"  y="22" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="13" y="22" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <rect x="22" y="22" width="7" height="7" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.5"/>
+            <g clip-path="url(#clip16)">
+              <line x1="0" y1="8" x2="24" y2="32" stroke="#00D4FF" stroke-width="1.75" stroke-linecap="round" filter="url(#glow16)"/>
+            </g>
+          </svg>
+          <span style="font-size:10px;color:#4A6278;">16px</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- LOGO — TRANSPARENT BG -->
+  <div class="section">
+    <span class="label">Logo — Transparent Background</span>
+    <div class="card transparent">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 44" width="220" height="44" fill="none">
+        <defs>
+          <filter id="cyan-glow3" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2.5" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <filter id="line-glow3" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="1.5" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <clipPath id="grid-clip3">
+            <rect x="2" y="2" width="40" height="40" rx="4" />
+          </clipPath>
+        </defs>
+        <rect x="2" y="2" width="40" height="40" rx="4" fill="#0E1318" stroke="#1E2D3D" stroke-width="1" />
+        <rect x="8"  y="8"  width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="19" y="8"  width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="30" y="8"  width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="8"  y="19" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="19" y="19" width="8" height="8" rx="1" fill="#0A1929" stroke="#00D4FF" stroke-width="0.75" />
+        <rect x="30" y="19" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="8"  y="30" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="19" y="30" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <rect x="30" y="30" width="8" height="8" rx="1" fill="#141C24" stroke="#1E2D3D" stroke-width="0.75" />
+        <g clip-path="url(#grid-clip3)">
+          <line x1="2" y1="10" x2="34" y2="42" stroke="#00D4FF" stroke-width="2" stroke-linecap="round" filter="url(#line-glow3)" opacity="0.9" />
+        </g>
+        <line x1="2"  y1="6"  x2="2"  y2="2"  stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow3)" />
+        <line x1="2"  y1="2"  x2="6"  y2="2"  stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow3)" />
+        <line x1="38" y1="2"  x2="42" y2="2"  stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow3)" />
+        <line x1="42" y1="2"  x2="42" y2="6"  stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow3)" />
+        <line x1="2"  y1="38" x2="2"  y2="42" stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow3)" />
+        <line x1="2"  y1="42" x2="6"  y2="42" stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow3)" />
+        <line x1="38" y1="42" x2="42" y2="42" stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow3)" />
+        <line x1="42" y1="38" x2="42" y2="42" stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round" filter="url(#cyan-glow3)" />
+        <text x="56" y="28" font-family="'Space Grotesk', sans-serif" font-weight="700" font-size="22" letter-spacing="-0.5" fill="#E8F0F8">AIDetect</text>
+        <text x="168" y="28" font-family="'Space Grotesk', sans-serif" font-weight="500" font-size="18" fill="#4A6278">.pro</text>
+      </svg>
+    </div>
+  </div>
+
+</body>
+</html>
