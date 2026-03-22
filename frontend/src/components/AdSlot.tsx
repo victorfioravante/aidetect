@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+
 interface AdSlotProps {
   slot: string
   format?: 'banner' | 'rectangle' | 'leaderboard'
@@ -5,14 +7,33 @@ interface AdSlotProps {
 }
 
 const DIMENSIONS: Record<string, { w: number; h: number }> = {
-  banner: { w: 320, h: 50 },
+  banner:      { w: 320, h: 50 },
   leaderboard: { w: 728, h: 90 },
-  rectangle: { w: 300, h: 250 },
+  rectangle:   { w: 300, h: 250 },
+}
+
+declare global {
+  interface Window {
+    adsbygoogle: unknown[]
+  }
 }
 
 export function AdSlot({ slot, format = 'banner', className = '' }: AdSlotProps) {
   const client = import.meta.env.VITE_ADSENSE_CLIENT
   const { w, h } = DIMENSIONS[format]
+  const insRef = useRef<HTMLModElement>(null)
+  const pushed = useRef(false)
+
+  useEffect(() => {
+    if (!client || !slot || pushed.current) return
+    try {
+      pushed.current = true
+      ;(window.adsbygoogle = window.adsbygoogle || []).push({})
+    } catch {
+      // AdSense not loaded yet — will retry on next render
+      pushed.current = false
+    }
+  }, [client, slot])
 
   if (!client || !slot) {
     return (
@@ -28,6 +49,7 @@ export function AdSlot({ slot, format = 'banner', className = '' }: AdSlotProps)
   return (
     <div className={`flex justify-center ${className}`}>
       <ins
+        ref={insRef}
         className="adsbygoogle"
         style={{ display: 'block', width: w, height: h }}
         data-ad-client={client}
