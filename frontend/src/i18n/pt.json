@@ -128,5 +128,18 @@
     "AI_GENERATED": "IA Detectada",
     "SUSPICIOUS": "Suspeito",
     "AUTHENTIC": "Autêntico"
+  },
+  "pdf": {
+    "title": "Relatório de Análise",
+    "analysisId": "ID da Análise",
+    "mediaType": "Tipo de Mídia",
+    "analyzedAt": "Analisado em",
+    "platform": "Plataforma",
+    "source": "Fonte",
+    "visualizations": "Visualizações Forenses",
+    "generatedBy": "Gerado por AIDetect.pro",
+    "image": "Imagem",
+    "video": "Vídeo",
+    "exporting": "Gerando PDF..."
   }
 }
