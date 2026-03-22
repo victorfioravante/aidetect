@@ -1,8 +1,30 @@
 import ffmpeg from 'fluent-ffmpeg'
-import { Readable } from 'stream'
+import { execSync } from 'child_process'
 import { promises as fs } from 'fs'
 import os from 'os'
 import path from 'path'
+
+// Resolve ffmpeg binary path:
+// 1. FFMPEG_PATH env var (set explicitly in Railway or .env)
+// 2. System PATH (ffmpeg installed via nixpkgs on Railway, or apt on Linux)
+// 3. Fallback: let fluent-ffmpeg try on its own
+function resolveFfmpegPath(): string | null {
+  if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH
+  try {
+    const p = execSync('which ffmpeg', { encoding: 'utf8' }).trim()
+    if (p) return p
+  } catch { /* not in PATH */ }
+  return null
+}
+
+const FFMPEG_PATH = resolveFfmpegPath()
+if (FFMPEG_PATH) {
+  ffmpeg.setFfmpegPath(FFMPEG_PATH)
+  ffmpeg.setFfprobePath(FFMPEG_PATH.replace(/ffmpeg$/, 'ffprobe'))
+  console.log('[videoFrames] ffmpeg path:', FFMPEG_PATH)
+} else {
+  console.warn('[videoFrames] ffmpeg not found — video analysis will fail')
+}
 
 export interface ExtractedFrames {
   /** Representative frame for image analysis (middle frame) */

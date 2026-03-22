@@ -1,7 +1,7 @@
 [build]
 builder = "nixpacks"
 buildCommand = "npm run build"
-nixpkgs = ["yt-dlp"]
+nixpkgs = ["yt-dlp", "ffmpeg"]
 
 [deploy]
 startCommand = "npm start"
