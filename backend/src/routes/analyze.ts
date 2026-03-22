@@ -16,6 +16,7 @@ import { exifAnalyzer } from '../analyzers/exif'
 import { noiseAnalyzer } from '../analyzers/noise'
 import { temporalAnalyzer } from '../analyzers/temporal'
 import { normalizeBuffer } from '../lib/imageUtils'
+import { extractVideoFrames } from '../lib/videoFrames'
 import { computeFinalScore, computeVerdict, AnalysisResult, Lang } from '../types'
 import { rateLimitMiddleware } from '../middleware/rateLimit'
 
@@ -81,23 +82,41 @@ analyzeRouter.post(
 
     const isVideo = req.file?.mimetype.startsWith('video') ?? false
 
-    // ── Normalize: convert HEIC/HEIF/AVIF/GIF → JPEG with orientation fix ──
-    // The original (rawBuffer) is passed to exifAnalyzer so it can read the
-    // native EXIF before sharp strips the orientation tag.
-    // All other analyzers receive the normalized JPEG.
-    let buffer: Buffer
+    // ── Normalize ──────────────────────────────────────────────────────────────
+    // For images: convert HEIC/HEIF/AVIF/GIF → JPEG with orientation fix.
+    //   rawBuffer is kept for exifAnalyzer (reads native EXIF before conversion).
+    //   All other analyzers receive the normalized JPEG.
+    //
+    // For videos: extract frames with ffmpeg.
+    //   keyFrame (middle frame) is used for image analyzers.
+    //   All frames are passed to temporalAnalyzer.
+    let buffer: Buffer            // image buffer passed to most analyzers
+    let videoFrames: Buffer[] = [] // all frames (only for video)
+
     try {
-      buffer = isVideo ? rawBuffer : await normalizeBuffer(rawBuffer)
-    } catch {
-      res.status(422).json({ success: false, error: 'Unsupported image format', code: 'UNSUPPORTED_FORMAT' })
+      if (isVideo) {
+        const extracted = await extractVideoFrames(rawBuffer)
+        buffer = extracted.keyFrame
+        videoFrames = extracted.frames
+      } else {
+        buffer = await normalizeBuffer(rawBuffer)
+      }
+    } catch (err) {
+      console.error('[normalize/extract error]', err)
+      res.status(422).json({
+        success: false,
+        error: isVideo ? 'Could not extract frames from video' : 'Unsupported image format',
+        code: 'UNSUPPORTED_FORMAT',
+      })
       return
     }
 
     try {
       // ── Phase 1: EXIF (must run first so ELA/gradient/shadow can be moderated) ──
-      // Uses rawBuffer to read native EXIF before any format conversion.
-      const exifResult = await exifAnalyzer(rawBuffer, lang)
-      // score < 20 means EXIF strongly confirms a real camera (make/model/GPS present, no AI software)
+      // For video: use the keyFrame buffer (EXIF in the extracted JPEG).
+      // For images: use rawBuffer to read native EXIF before conversion.
+      const exifResult = await exifAnalyzer(isVideo ? buffer : rawBuffer, lang)
+      // score < 20 means EXIF strongly confirms a real camera
       const hasConfirmedCamera = exifResult.score < 20
 
       // ── Phase 2: all remaining analyzers in parallel ──
@@ -128,8 +147,11 @@ analyzeRouter.post(
         noiseAnalyzer(buffer, lang),
       ])
 
-      // Temporal: not applicable for single-image upload (always skipped)
-      const temporalResult = await temporalAnalyzer([buffer], lang)
+      // Temporal: use all extracted frames for video; skipped for images.
+      const temporalResult = await temporalAnalyzer(
+        isVideo ? videoFrames : [buffer],
+        lang,
+      )
 
       // Platform label: not applicable for direct uploads
       const platformLabelResult = {
