@@ -83,6 +83,19 @@ function uploadMiddleware(req: Request, res: Response, next: NextFunction) {
   })
 }
 
+/**
+ * Returns the index of the element whose score is closest to the median.
+ * For a single-element array always returns 0.
+ * Used for video analysis: run each local analyzer on all extracted frames
+ * and pick the result that best represents the "typical" frame — avoiding
+ * outliers caused by motion blur, transitions, or unusual keyframes.
+ */
+function medianIndex(scores: number[]): number {
+  if (scores.length === 1) return 0
+  const indexed = scores.map((s, i) => ({ s, i })).sort((a, b) => a.s - b.s)
+  return indexed[Math.floor(indexed.length / 2)].i
+}
+
 analyzeRouter.post(
   '/',
   rateLimitMiddleware,
@@ -113,10 +126,11 @@ analyzeRouter.post(
     //   All other analyzers receive the normalized JPEG.
     //
     // For videos: extract frames with ffmpeg.
-    //   keyFrame (middle frame) is used for image analyzers.
-    //   All frames are passed to temporalAnalyzer.
-    let buffer: Buffer            // image buffer passed to most analyzers
-    let videoFrames: Buffer[] = [] // all frames (only for video)
+    //   keyFrame (middle frame) is used for EXIF + external API analyzers.
+    //   All frames are passed to local image analyzers (median aggregation)
+    //   and to temporalAnalyzer.
+    let buffer: Buffer            // keyFrame (image or middle video frame)
+    let videoFrames: Buffer[] = [] // all frames — only populated for video
 
     try {
       if (isVideo) {
@@ -138,57 +152,80 @@ analyzeRouter.post(
       return
     }
 
+    // For video: run local image analyzers on all extracted frames and aggregate
+    // by median score. This avoids relying on a single frame that might be a
+    // motion-blur outlier or an unrepresentative transition frame.
+    // For images: analysisFrames = [buffer], so all paths below behave identically.
+    const analysisFrames = isVideo ? videoFrames : [buffer]
+
+    if (isVideo && analysisFrames.length > 1) {
+      console.log(`[analyze] video multi-frame: analyzing ${analysisFrames.length} frames, aggregating by median`)
+    }
+
     try {
-      // ── Phase 1: EXIF (must run first so ELA/gradient/shadow can be moderated) ──
-      // Detect HEIC/HEIF origin from the original MIME type and file extension.
-      // HEIC is exclusively produced by real device cameras — AI generators never output HEIC.
-      // We pass this flag so exifAnalyzer skips the "no Make/Model" penalty, since
-      // sharp's HEIC→JPEG EXIF transfer often loses those fields (format conversion artifact).
+      // ── Phase 1: EXIF ──────────────────────────────────────────────────────
+      // Always runs on keyFrame only.
+      // Video frames extracted by ffmpeg have no meaningful camera EXIF, so
+      // multi-frame EXIF would just return the same "no EXIF" result each time.
       const originalMime = req.file?.mimetype.toLowerCase() ?? ''
       const originalExt  = path.extname(req.file?.originalname ?? '').toLowerCase()
       const isHeicSource = ['image/heic', 'image/heif', 'image/heic-sequence'].includes(originalMime) ||
         ['.heic', '.heif'].includes(originalExt)
 
       const exifResult = await exifAnalyzer(buffer, lang, { isHeicSource })
-      // score < 20 means EXIF strongly confirms a real camera
       const hasConfirmedCamera = exifResult.score < 20
 
-      // ── Phase 2a: noise (fast) — needed to compute hasConfirmedReal ────────
-      // Natural noise (high CV) is strong evidence of a real photo even when EXIF
-      // has no camera data (photos shared via WhatsApp/Telegram strip EXIF).
-      const noiseResult = await noiseAnalyzer(buffer, lang)
+      // ── Phase 2a: noise on all frames → hasConfirmedReal ──────────────────
+      // For video, averaging noise across frames gives a more reliable signal
+      // than a single frame (some frames may be temporarily blurred by motion).
+      const noiseAll = await Promise.all(analysisFrames.map((f) => noiseAnalyzer(f, lang)))
+      const noiseResult = noiseAll[medianIndex(noiseAll.map((r) => r.score))]
       const hasNaturalNoise = noiseResult.score < 25
-      // hasConfirmedReal: at least one strong signal confirms this is a real photo.
+      // hasConfirmedReal: at least one strong signal confirms this is a real photo/video.
       // Used by ELA/gradient/shadow to apply false-positive caps.
       const hasConfirmedReal = hasConfirmedCamera || hasNaturalNoise
 
-      // ── Phase 2b: all remaining analyzers in parallel ─────────────────────
-      // ELA, gradient, shadow receive hasConfirmedReal to apply false-positive caps.
+      // ── Phase 2b: local image analyzers — all frames, then pick median ─────
+      // Running in parallel: 7 analyzers × N frames.
+      // External APIs (hive, sightengine, transformers) run on keyFrame only
+      // to avoid multiplying API costs by the number of frames.
       const [
-        { result: elaResult, elaMap },
-        { result: gradientResult, gradientMap },
-        textureResult,
-        { result: fftResult, fftSpectrum },
-        { result: shadowResult, shadowViz },
-        symmetryResult,
-        statsResult,
-        hiveResult,
-        sightengineResult,
-        transformersResult,
+        elaAll,
+        gradientAll,
+        textureAll,
+        fftAll,
+        shadowAll,
+        symmetryAll,
+        statsAll,
       ] = await Promise.all([
-        elaAnalyzer(buffer, lang, { hasConfirmedReal }),
-        gradientAnalyzer(buffer, lang, { hasConfirmedReal }),
-        textureAnalyzer(buffer, lang),
-        fftAnalyzer(buffer, lang),
-        shadowAnalyzer(buffer, lang, { hasConfirmedReal }),
-        symmetryAnalyzer(buffer, lang),
-        statsAnalyzer(buffer, lang),
+        Promise.all(analysisFrames.map((f) => elaAnalyzer(f, lang, { hasConfirmedReal }))),
+        Promise.all(analysisFrames.map((f) => gradientAnalyzer(f, lang, { hasConfirmedReal }))),
+        Promise.all(analysisFrames.map((f) => textureAnalyzer(f, lang))),
+        Promise.all(analysisFrames.map((f) => fftAnalyzer(f, lang))),
+        Promise.all(analysisFrames.map((f) => shadowAnalyzer(f, lang, { hasConfirmedReal }))),
+        Promise.all(analysisFrames.map((f) => symmetryAnalyzer(f, lang))),
+        Promise.all(analysisFrames.map((f) => statsAnalyzer(f, lang))),
+      ])
+
+      // Pick the result whose score is the median (avoids outlier frames).
+      // For viz analyzers the corresponding visualization (elaMap etc.) comes
+      // from the same median-score frame, keeping result and image consistent.
+      const { result: elaResult,      elaMap }      = elaAll[medianIndex(elaAll.map((r) => r.result.score))]
+      const { result: gradientResult, gradientMap }  = gradientAll[medianIndex(gradientAll.map((r) => r.result.score))]
+      const textureResult                            = textureAll[medianIndex(textureAll.map((r) => r.score))]
+      const { result: fftResult,      fftSpectrum }  = fftAll[medianIndex(fftAll.map((r) => r.result.score))]
+      const { result: shadowResult,   shadowViz }    = shadowAll[medianIndex(shadowAll.map((r) => r.result.score))]
+      const symmetryResult                           = symmetryAll[medianIndex(symmetryAll.map((r) => r.score))]
+      const statsResult                              = statsAll[medianIndex(statsAll.map((r) => r.score))]
+
+      // ── Phase 2c: external APIs — keyFrame only ────────────────────────────
+      const [hiveResult, sightengineResult, transformersResult] = await Promise.all([
         hiveAnalyzer(buffer, lang),
         sightengineAnalyzer(buffer, lang),
         transformersAnalyzer(buffer, lang),
       ])
 
-      // Temporal: use all extracted frames for video; skipped for images.
+      // ── Phase 3: temporal — all frames (video only) ────────────────────────
       const temporalResult = await temporalAnalyzer(
         isVideo ? videoFrames : [buffer],
         lang,
