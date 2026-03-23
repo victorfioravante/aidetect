@@ -113,10 +113,16 @@ analyzeRouter.post(
 
     try {
       // ── Phase 1: EXIF (must run first so ELA/gradient/shadow can be moderated) ──
-      // Always use the normalized JPEG buffer: normalizeBuffer() calls .withMetadata()
-      // which preserves all EXIF (Make, Model, GPS). Reading from rawBuffer (HEIC) is
-      // unreliable because exif-reader cannot parse HEIC-native EXIF tag structures.
-      const exifResult = await exifAnalyzer(buffer, lang)
+      // Detect HEIC/HEIF origin from the original MIME type and file extension.
+      // HEIC is exclusively produced by real device cameras — AI generators never output HEIC.
+      // We pass this flag so exifAnalyzer skips the "no Make/Model" penalty, since
+      // sharp's HEIC→JPEG EXIF transfer often loses those fields (format conversion artifact).
+      const originalMime = req.file?.mimetype.toLowerCase() ?? ''
+      const originalExt  = path.extname(req.file?.originalname ?? '').toLowerCase()
+      const isHeicSource = ['image/heic', 'image/heif', 'image/heic-sequence'].includes(originalMime) ||
+        ['.heic', '.heif'].includes(originalExt)
+
+      const exifResult = await exifAnalyzer(buffer, lang, { isHeicSource })
       // score < 20 means EXIF strongly confirms a real camera
       const hasConfirmedCamera = exifResult.score < 20
 

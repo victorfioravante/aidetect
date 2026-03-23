@@ -15,18 +15,24 @@ function isAiDimension(w: number, h: number): boolean {
  * EXIF metadata analyzer
  * Checks for absence of camera metadata and presence of AI generation signals.
  */
-export async function exifAnalyzer(buffer: Buffer, lang: string): Promise<DetectorResult> {
+export async function exifAnalyzer(
+  buffer: Buffer,
+  lang: string,
+  options?: { isHeicSource?: boolean },
+): Promise<DetectorResult> {
   try {
     const metadata = await sharp(buffer).metadata()
 
     let score = 0
     const signals: string[] = []
 
-    // HEIF/HEIC format is almost exclusively produced by real device cameras (iPhone, etc.)
-    // AI-generated images are virtually never saved in HEIC format.
-    if (metadata.format === 'heif') {
-      score = Math.max(0, score - 20)
-      signals.push(lang === 'en' ? 'HEIC format (device camera)' : 'Formato HEIC (câmera do dispositivo)')
+    // HEIC/HEIF uploads come exclusively from real device cameras (iPhone, iPad, some DSLRs).
+    // AI image generators never produce HEIC output. We track this from the original upload
+    // MIME type / extension (passed via options) because by this point the buffer is already
+    // a normalized JPEG (format detection on the buffer itself would give 'jpeg', not 'heif').
+    const isHeicSource = options?.isHeicSource ?? false
+    if (isHeicSource) {
+      signals.push(lang === 'en' ? 'HEIC source (device camera)' : 'Origem HEIC (câmera do dispositivo)')
     }
 
     const exif = metadata.exif
@@ -61,8 +67,15 @@ export async function exifAnalyzer(buffer: Buffer, lang: string): Promise<Detect
         const software: string = stripNull(image.Software ?? image.software ?? exifIfd.Software ?? photo.Software ?? '')
 
         if (!make && !model) {
-          score += 25
-          signals.push(lang === 'en' ? 'No camera make/model' : 'Sem câmera registrada')
+          if (isHeicSource) {
+            // HEIC→JPEG conversion via sharp often fails to transfer Make/Model from
+            // the HEIC container to the JPEG EXIF IFD. Absence of Make/Model here is
+            // a format-conversion artifact, not a sign of AI generation.
+            signals.push(lang === 'en' ? 'Camera data in HEIC container' : 'Dados de câmera no contêiner HEIC')
+          } else {
+            score += 25
+            signals.push(lang === 'en' ? 'No camera make/model' : 'Sem câmera registrada')
+          }
         } else {
           // Real camera data — reduce suspicion
           score = Math.max(0, score - 20)
