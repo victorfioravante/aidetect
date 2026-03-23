@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import { analyzeRouter } from './routes/analyze'
 import { socialRouter } from './routes/social'
+import { warmupTransformers } from './analyzers/transformers'
 
 const app = express()
 const PORT = Number(process.env.PORT || 3001)
@@ -42,6 +43,9 @@ app.use((_req, res) => {
 
 app.listen(PORT, () => {
   console.log(`AIDetect.pro backend running on port ${PORT}`)
+  // Pre-load the local ViT model so it's ready before the first request.
+  // Non-blocking — a failure here only means the analyzer will abstain.
+  warmupTransformers()
 })
 
 export default app

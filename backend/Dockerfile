@@ -1,4 +1,4 @@
-# ── Stage 1: build ────────────────────────────────────────────────────────────
+# ── Stage 1: TypeScript build ──────────────────────────────────────────────────
 FROM node:20-slim AS builder
 
 WORKDIR /app
@@ -13,7 +13,7 @@ RUN npm run build
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
 FROM node:20-slim
 
-# Install ffmpeg and yt-dlp
+# System dependencies: ffmpeg for video frames, yt-dlp for social extraction
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       ffmpeg \
@@ -30,7 +30,13 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-# Copy compiled output from builder stage
+# Pre-download AI detection model so the first request never blocks on download.
+# The model (~85 MB int8) is baked into the image and loaded from /app/models.
+COPY scripts/ ./scripts/
+ENV HF_CACHE_DIR=/app/models
+RUN node scripts/download-model.mjs
+
+# Compiled JS from builder stage
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3001

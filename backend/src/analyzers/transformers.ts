@@ -3,61 +3,97 @@ import os from 'os'
 import sharp from 'sharp'
 import { DetectorResult } from '../types'
 
-// Model: Organika/sdxl-detector — ViT fine-tuned to detect AI-generated images
-// Weights cached in tmp on first run (~500MB download). On Railway, use a persistent
-// volume mounted at /cache for production to avoid re-downloading on each deploy.
-const MODEL_ID = 'Organika/sdxl-detector'
+// Model: onnx-community/Deep-Fake-Detector-v2-Model-ONNX
+// ViT-base fine-tuned for AI vs real image classification.
+// Has pre-converted ONNX files → works with @huggingface/transformers v3.
+// Pre-downloaded during Docker build (scripts/download-model.mjs) so the
+// first request never blocks waiting for a ~85MB download.
+const MODEL_ID  = 'onnx-community/Deep-Fake-Detector-v2-Model-ONNX'
 const CACHE_DIR = process.env.HF_CACHE_DIR || path.join(os.tmpdir(), 'aidetect-hf-cache')
 
-// Singleton — pipeline is expensive to load; reuse across requests
-type HFPipeline = (input: string) => Promise<Array<{ label: string; score: number }>>
+// Output labels for this model:
+//   "Deepfake"  → AI-generated / manipulated
+//   "Realism"   → authentic / real
+const FAKE_LABEL_RE = /deepfake|fake|ai.?gen|artificial|synthetic|generated/i
+
+type HFPipeline = (
+  input: string,
+  opts?: Record<string, unknown>,
+) => Promise<Array<{ label: string; score: number }>>
+
+// Singleton — pipeline is expensive to load; reuse across requests.
+// loadPromise prevents concurrent load attempts (concurrent requests arriving
+// before the model is ready would each try to download/initialize otherwise).
 let classifier: HFPipeline | null = null
-let loadError: string | null = null
+let loadPromise: Promise<HFPipeline> | null = null
+let permanentlyFailed = false
 
-async function getClassifier(): Promise<HFPipeline> {
-  if (loadError) throw new Error(loadError)
-  if (classifier) return classifier
-
-  // Dynamic import — @huggingface/transformers is ESM, works fine with tsx / Node 20
+async function loadClassifier(): Promise<HFPipeline> {
   const { pipeline, env } = await import('@huggingface/transformers')
 
-  env.cacheDir = CACHE_DIR
-  // Disable telemetry in production
+  env.cacheDir       = CACHE_DIR
   env.useBrowserCache = false
 
-  classifier = await pipeline('image-classification', MODEL_ID, {
+  const pipe = await pipeline('image-classification', MODEL_ID, {
     device: 'cpu' as never,
-  }) as HFPipeline
+    // int8 quantization: ~85 MB on disk, ~120 MB in RAM — fits Railway's free tier.
+    // Same accuracy as fp32 for binary classification at this model size.
+    dtype: 'int8' as never,
+  })
 
-  return classifier
+  return pipe as HFPipeline
 }
 
-// Label patterns that indicate AI-generated content
-const AI_LABEL_PATTERNS = /ai.?gen|artificial|fake|sdxl|synthetic|generated/i
+async function getClassifier(): Promise<HFPipeline> {
+  if (classifier) return classifier
 
-function extractAiScore(results: Array<{ label: string; score: number }>): number {
-  if (!results?.length) return 0
+  // Previous load permanently failed (model not found, incompatible format)
+  if (permanentlyFailed) throw new Error('model permanently unavailable')
 
-  // Try to find an explicit AI/artificial label
-  const aiEntry = results.find((r) => AI_LABEL_PATTERNS.test(r.label))
-  if (aiEntry) return aiEntry.score
+  // Deduplicate concurrent load attempts into a single Promise
+  if (!loadPromise) {
+    loadPromise = loadClassifier()
+      .then((pipe) => {
+        classifier = pipe
+        loadPromise = null
+        console.log('[transformers] Model loaded successfully')
+        return pipe
+      })
+      .catch((err) => {
+        loadPromise = null
+        // Mark permanent failure only for definitive errors, not transient ones
+        const msg = String(err?.message ?? '').toLowerCase()
+        if (msg.includes('not found') || msg.includes('404') || msg.includes('invalid')) {
+          permanentlyFailed = true
+        }
+        throw err
+      })
+  }
 
-  // Fallback: if labels are binary (e.g. label_0 / label_1), use the higher-score entry
-  // This avoids silent misclassification when label names are opaque
-  const sorted = [...results].sort((a, b) => b.score - a.score)
-  return sorted[0]?.score ?? 0
+  return loadPromise
+}
+
+// Called once at server startup to warm up the model before any request arrives.
+// Non-blocking — errors are logged but do not crash the server.
+export async function warmupTransformers(): Promise<void> {
+  try {
+    await getClassifier()
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.warn('[transformers] Warmup failed (model will be unavailable):', msg)
+  }
 }
 
 /**
  * Transformers.js AI-image detector
  * Runs entirely locally — no API key required.
- * First call downloads the model (~500MB); subsequent calls use the cache.
+ * Model is pre-downloaded during Docker build; cached in CACHE_DIR.
  */
 export async function transformersAnalyzer(buffer: Buffer, lang: string): Promise<DetectorResult> {
   try {
     const classify = await getClassifier()
 
-    // Resize to 224×224 (ViT expected size) and encode as JPEG for the pipeline
+    // Resize to 224×224 (ViT expected input) and encode as JPEG
     const resized = await sharp(buffer)
       .resize(224, 224, { fit: 'cover' })
       .jpeg({ quality: 90 })
@@ -66,10 +102,12 @@ export async function transformersAnalyzer(buffer: Buffer, lang: string): Promis
     const dataUrl = `data:image/jpeg;base64,${resized.toString('base64')}`
     const results = await classify(dataUrl)
 
-    const aiScore = extractAiScore(results)
-    const score = Math.round(aiScore * 100)
+    // Find the AI/Deepfake label — its score is directly the AI probability
+    const fakeEntry = results.find((r) => FAKE_LABEL_RE.test(r.label))
+    const aiScore   = fakeEntry?.score ?? (1 - (results[0]?.score ?? 0.5))
+    const score     = Math.round(aiScore * 100)
 
-    const topLabel = results[0]?.label ?? ''
+    const topLabel = fakeEntry?.label ?? results[0]?.label ?? ''
 
     const label = lang === 'en'
       ? score >= 70
@@ -85,14 +123,10 @@ export async function transformersAnalyzer(buffer: Buffer, lang: string): Promis
 
     return { score, label, passed: score < 50 }
   } catch {
-    // Model not yet downloaded or load failed → signal abstained so caller applies heuristic
-    loadError = null // allow retry on next request
-    classifier = null
-
     return {
-      score: 0,
-      label: lang === 'en' ? 'Local model unavailable' : 'Modelo local indisponível',
-      passed: true,
+      score:    0,
+      label:    lang === 'en' ? 'Local model unavailable' : 'Modelo local indisponível',
+      passed:   true,
       abstained: true,
     }
   }
