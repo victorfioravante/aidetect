@@ -6,7 +6,7 @@ import { useAnalysisStore } from '../store/analysisStore'
 import { ScoreGauge } from './ScoreGauge'
 import { DetectorCard } from './DetectorCard'
 import { AdSlot } from './AdSlot'
-import { AnalysisResult } from '../types'
+import { AnalysisResult, DetectorResult } from '../types'
 import i18n from '../i18n'
 
 const ALL_DETECTOR_KEYS = [
@@ -269,6 +269,59 @@ async function exportPDF(result: AnalysisResult) {
   doc.save(`aidetect-${result.id}.pdf`)
 }
 
+/**
+ * Generates a one-sentence executive summary based on the top-scoring detectors.
+ * Keeps the verdict section human-readable without adding a new API dependency.
+ */
+function buildSummary(result: AnalysisResult, t: (key: string, opts?: Record<string, unknown>) => string): string {
+  const active = (Object.entries(result.breakdown) as [string, DetectorResult][])
+    .filter(([k, v]) => !v.abstained && !v.skipped && v.score > 0 && k !== 'temporal' && k !== 'platformLabel')
+    .sort(([, a], [, b]) => b.score - a.score)
+
+  const top1 = active[0] ? t(`detectors.${active[0][0]}`) : '—'
+  const top2 = active[1] ? t(`detectors.${active[1][0]}`) : top1
+
+  return t(`result.summary.${result.verdict}`, { top1, top2, score: result.score })
+}
+
+/**
+ * Horizontal context bar showing where the score sits relative to the three verdict zones.
+ * Gives instant visual context without the user having to read the numeric score.
+ */
+function ScoreThermometer({ score, verdict }: { score: number; verdict: string }) {
+  const { t } = useTranslation()
+
+  const markerColor =
+    verdict === 'AI_GENERATED' ? 'bg-red-400' :
+    verdict === 'SUSPICIOUS'   ? 'bg-amber-400' :
+    'bg-green-400'
+
+  return (
+    <div className="w-full max-w-sm mt-5">
+      <div className="relative h-2 rounded-full">
+        {/* Zone bands */}
+        <div className="absolute inset-0 flex rounded-full overflow-hidden">
+          <div className="w-[40%] bg-green-500/20" />
+          <div className="w-[29%] bg-amber-500/20" />
+          <div className="w-[31%] bg-red-500/20" />
+        </div>
+        {/* Score marker — positioned outside overflow-hidden so it's always visible */}
+        <motion.div
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-gray-900 shadow-lg ${markerColor}`}
+          initial={{ left: '50%' }}
+          animate={{ left: `${score}%` }}
+          transition={{ duration: 1.0, ease: 'easeOut', delay: 0.4 }}
+        />
+      </div>
+      <div className="flex justify-between text-[10px] text-gray-600 mt-2 select-none">
+        <span>{t('verdict.AUTHENTIC')}</span>
+        <span>{t('verdict.SUSPICIOUS')}</span>
+        <span>{t('verdict.AI_GENERATED')}</span>
+      </div>
+    </div>
+  )
+}
+
 function VizModal({ src, title, desc, onClose }: { src: string; title: string; desc: string; onClose: () => void }) {
   return (
     <motion.div
@@ -304,9 +357,11 @@ function VizModal({ src, title, desc, onClose }: { src: string; title: string; d
 export function ResultPanel() {
   const { t } = useTranslation()
   const result = useAnalysisStore((s) => s.result)
+  const reset  = useAnalysisStore((s) => s.reset)
   const adSlotResult = import.meta.env.VITE_ADSENSE_SLOT_RESULT
   const [zoomedViz, setZoomedViz] = useState<{ src: string; title: string; desc: string } | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
 
   if (!result) return null
 
@@ -320,7 +375,14 @@ export function ResultPanel() {
     }
   }
 
+  function handleShare() {
+    navigator.clipboard.writeText(window.location.href)
+    setShareCopied(true)
+    setTimeout(() => setShareCopied(false), 2000)
+  }
+
   const activeViz = VIZ_CARDS.filter(({ key }) => !!result.visualizations[key])
+  const summary   = buildSummary(result, t)
 
   return (
     <>
@@ -348,9 +410,21 @@ export function ResultPanel() {
               )}
             </div>
           )}
+
           <ScoreGauge score={result.score} verdict={result.verdict} confidence={result.confidence} />
 
-          <div className="flex gap-4 mt-6">
+          {/* Score context thermometer */}
+          <ScoreThermometer score={result.score} verdict={result.verdict} />
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap justify-center gap-3 mt-6">
+            {/* Primary CTA — lets the user analyze another file without scrolling */}
+            <button
+              onClick={reset}
+              className="px-5 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg font-medium transition-colors"
+            >
+              {t('result.newAnalysis')}
+            </button>
             <button
               onClick={handleExport}
               disabled={exporting}
@@ -358,13 +432,29 @@ export function ResultPanel() {
             >
               {exporting ? t('pdf.exporting') : t('result.export')}
             </button>
+            {/* Share with copied feedback */}
             <button
-              onClick={() => navigator.clipboard.writeText(window.location.href)}
-              className="px-5 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg font-medium transition-colors border border-gray-700"
+              onClick={handleShare}
+              className="px-5 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg font-medium transition-colors border border-gray-700 min-w-[110px]"
             >
-              {t('result.share')}
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={shareCopied ? 'copied' : 'share'}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {shareCopied ? t('result.shareCopied') : t('result.share')}
+                </motion.span>
+              </AnimatePresence>
             </button>
           </div>
+        </div>
+
+        {/* Executive summary */}
+        <div className="bg-gray-900/60 border border-gray-800 rounded-xl px-6 py-4">
+          <p className="text-gray-300 text-sm leading-relaxed">{summary}</p>
         </div>
 
         {/* Visualizations — 2x2 grid */}

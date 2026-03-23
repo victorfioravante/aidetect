@@ -4,13 +4,15 @@
     "tagline": "Detect AI-generated media in seconds"
   },
   "nav": {
-    "howItWorks": "How It Works",
-    "api": "API"
+    "howItWorks": "How It Works"
   },
   "hero": {
     "title": "Detect AI-Generated Media",
     "subtitle": "Analyze images and videos to identify if they were created or manipulated by artificial intelligence",
     "badge": "Advanced detection technology"
+  },
+  "trust": {
+    "badge": "Processed on server · Images not stored · No sign-up required"
   },
   "tabs": {
     "upload": "Upload",
@@ -21,7 +23,8 @@
     "title": "Drag and drop your image here",
     "subtitle": "or click to select",
     "btn": "Select File",
-    "formats": "JPG, PNG, WebP, GIF · Max 30MB"
+    "formats": "JPG, PNG, WebP, GIF · Max 30MB",
+    "privacy": "Processed on server · Not stored"
   },
   "link": {
     "placeholder": "Paste TikTok, Instagram, Twitter or YouTube link...",
@@ -46,11 +49,18 @@
     "title": "Drag and drop your video here",
     "subtitle": "or click to select",
     "btn": "Select Video",
-    "formats": "MP4, MOV, AVI • Max 50MB"
+    "formats": "MP4, MOV, AVI • Max 50MB",
+    "privacy": "Processed on server · Not stored"
   },
   "analyze": {
     "btn": "Analyze",
     "analyzing": "Analyzing..."
+  },
+  "loading": {
+    "receive": "Receiving file...",
+    "process": "Running 14 detectors...",
+    "score": "Computing final score...",
+    "extract": "Extracting media from social network..."
   },
   "result": {
     "title": "Analysis Result",
@@ -60,10 +70,17 @@
       "authentic": "AUTHENTIC"
     },
     "confidence": "Confidence",
-    "detectors": "Detector Details",
+    "detectors": "Technical breakdown by detector",
     "export": "Export PDF",
     "share": "Share",
-    "score": "AI Score"
+    "shareCopied": "✓ Copied!",
+    "newAnalysis": "New Analysis",
+    "score": "AI Score",
+    "summary": {
+      "AI_GENERATED": "{{top1}} and {{top2}} identified patterns consistent with AI-generated content. With a score of {{score}}/100, this media is likely artificial.",
+      "SUSPICIOUS": "{{top1}} flagged anomalies, but detectors did not reach a consensus. Score of {{score}}/100 — check the forensic visualizations for a more precise conclusion.",
+      "AUTHENTIC": "No significant evidence of manipulation was found. {{top1}} and {{top2}} confirm characteristics of real content. Score of {{score}}/100."
+    }
   },
   "detectors": {
     "symmetry": "Symmetry",
@@ -81,6 +98,22 @@
     "sightengine": "Sightengine API",
     "transformers": "Local Model (Transformers.js)"
   },
+  "detectorTooltips": {
+    "symmetry": "Measures facial and object asymmetry. AI tends to create artificially perfect symmetry.",
+    "stats": "Analyzes pixel value distribution. AI images have statistically distinct histogram patterns.",
+    "fft": "Detects periodic frequency patterns via Fast Fourier Transform — common in AI-generated images.",
+    "texture": "Compares textures to natural surfaces. AI tends to produce artificially smooth textures without imperfections.",
+    "shadow": "Checks if shadows originate from a consistent light source. AI often generates physically impossible shadows.",
+    "ela": "Error Level Analysis: detects JPEG compression inconsistencies that indicate editing or digital generation.",
+    "gradient": "Analyzes image edges. AI produces artificially uniform edges without organic camera noise.",
+    "exif": "Camera metadata (make, model, GPS). AI-generated images rarely contain real camera EXIF data.",
+    "noise": "Electronic sensor noise is unique to each real camera. AI generates artificial noise with different patterns.",
+    "temporal": "Video only. Compares consecutive frames to detect abnormal transitions or artificial flicker.",
+    "platformLabel": "AI detection label provided by the source platform (e.g., TikTok's AI-generated content filter).",
+    "hive": "Hive Moderation API — proprietary model trained on billions of AI-generated content examples.",
+    "sightengine": "Sightengine API — specialized in deepfakes and face manipulation in images and videos.",
+    "transformers": "Local ViT model running on the server, without sending data to external APIs."
+  },
   "viz": {
     "ela": {
       "title": "Error Level Analysis (ELA)",
@@ -97,6 +130,24 @@
     "shadow": {
       "title": "Lighting Direction",
       "desc": "Green arrows = consistent lighting. Red arrows = inconsistent directions, possible AI"
+    }
+  },
+  "how": {
+    "title": "How It Works",
+    "step1": {
+      "icon": "📤",
+      "title": "Submit media",
+      "desc": "Upload an image or video, or paste a social media link"
+    },
+    "step2": {
+      "icon": "🧠",
+      "title": "Automatic analysis",
+      "desc": "14 local detectors and specialized APIs analyze in seconds, without storing your data"
+    },
+    "step3": {
+      "icon": "📊",
+      "title": "Detailed results",
+      "desc": "Score from 0 to 100 with per-detector breakdown and exportable forensic visualizations"
     }
   },
   "limit": {
@@ -118,7 +169,9 @@
     "invalidUrl": "Invalid URL. Check the link and try again",
     "platformNotSupported": "Platform not supported. Use Instagram, TikTok or Twitter",
     "analysisError": "Analysis error. Please try again",
-    "networkError": "Connection error. Check your internet"
+    "networkError": "Connection error. Check your internet",
+    "tryAgain": "New Analysis",
+    "tryAgainHint": "Check the file or link and try again"
   },
   "confidence": {
     "HIGH": "High",

@@ -137,6 +137,7 @@ export function InputTabs() {
             {isLoading ? t('analyze.analyzing') : t('upload.btn')}
           </button>
           <p className="text-gray-600 text-xs mt-3">{t('upload.formats')}</p>
+          <p className="text-gray-700 text-xs mt-1">🔒 {t('upload.privacy')}</p>
         </div>
       )}
 
@@ -197,12 +198,13 @@ export function InputTabs() {
           <p className="text-gray-500 text-sm mb-4">{t('video.subtitle')}</p>
           <button
             type="button"
-            className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg font-medium transition-colors"
+            className="px-5 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg font-medium transition-colors"
             disabled={isLoading}
           >
             {isLoading ? t('analyze.analyzing') : t('video.btn')}
           </button>
           <p className="text-gray-600 text-xs mt-3">{t('video.formats')}</p>
+          <p className="text-gray-700 text-xs mt-1">🔒 {t('video.privacy')}</p>
         </div>
       )}
     </div>

@@ -19,9 +19,9 @@ export function Header() {
           <span className="text-white font-bold text-lg tracking-tight">{t('app.name')}</span>
         </div>
 
+        {/* Single nav link — points to the "How It Works" section that exists in the page */}
         <nav className="hidden md:flex items-center gap-6 text-sm text-gray-400">
           <a href="#how" className="hover:text-white transition-colors">{t('nav.howItWorks')}</a>
-          <a href="#api" className="hover:text-white transition-colors">{t('nav.api')}</a>
         </nav>
 
         <button

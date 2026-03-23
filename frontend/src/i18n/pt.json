@@ -4,13 +4,15 @@
     "tagline": "Detecte mídia gerada por IA em segundos"
   },
   "nav": {
-    "howItWorks": "Como Funciona",
-    "api": "API"
+    "howItWorks": "Como Funciona"
   },
   "hero": {
     "title": "Detecte Mídia Gerada por IA",
     "subtitle": "Analise imagens e vídeos para identificar se foram criados ou manipulados por inteligência artificial",
     "badge": "Tecnologia avançada de detecção"
+  },
+  "trust": {
+    "badge": "Processado no servidor · Imagens não armazenadas · Sem cadastro"
   },
   "tabs": {
     "upload": "Upload",
@@ -21,7 +23,8 @@
     "title": "Arraste e solte sua imagem aqui",
     "subtitle": "ou clique para selecionar",
     "btn": "Selecionar Arquivo",
-    "formats": "JPG, PNG, WebP, GIF · Máx 30MB"
+    "formats": "JPG, PNG, WebP, GIF · Máx 30MB",
+    "privacy": "Processado no servidor · Não armazenado"
   },
   "link": {
     "placeholder": "Cole o link do TikTok, Instagram, Twitter ou YouTube...",
@@ -46,11 +49,18 @@
     "title": "Arraste e solte seu vídeo aqui",
     "subtitle": "ou clique para selecionar",
     "btn": "Selecionar Vídeo",
-    "formats": "MP4, MOV, AVI • Máx 50MB"
+    "formats": "MP4, MOV, AVI • Máx 50MB",
+    "privacy": "Processado no servidor · Não armazenado"
   },
   "analyze": {
     "btn": "Analisar",
     "analyzing": "Analisando..."
+  },
+  "loading": {
+    "receive": "Recebendo arquivo...",
+    "process": "Processando com 14 detectores...",
+    "score": "Calculando resultado...",
+    "extract": "Extraindo mídia da rede social..."
   },
   "result": {
     "title": "Resultado da Análise",
@@ -60,10 +70,17 @@
       "authentic": "AUTÊNTICO"
     },
     "confidence": "Confiança",
-    "detectors": "Detalhes dos Detectores",
+    "detectors": "Análise técnica por detector",
     "export": "Exportar PDF",
     "share": "Compartilhar",
-    "score": "Pontuação de IA"
+    "shareCopied": "✓ Copiado!",
+    "newAnalysis": "Nova Análise",
+    "score": "Pontuação de IA",
+    "summary": {
+      "AI_GENERATED": "{{top1}} e {{top2}} identificaram padrões consistentes com geração por IA. Com score de {{score}}/100, há alta probabilidade de que esta mídia seja artificial.",
+      "SUSPICIOUS": "{{top1}} sinalizou anomalias, mas os detectores não chegaram a um consenso. Score de {{score}}/100 — examine as visualizações forenses para uma conclusão mais precisa.",
+      "AUTHENTIC": "Nenhuma evidência significativa de manipulação foi encontrada. {{top1}} e {{top2}} confirmam características de conteúdo real. Score de {{score}}/100."
+    }
   },
   "detectors": {
     "symmetry": "Simetria",
@@ -81,6 +98,22 @@
     "sightengine": "Sightengine API",
     "transformers": "Modelo Local (Transformers.js)"
   },
+  "detectorTooltips": {
+    "symmetry": "Mede assimetria de rostos e objetos. IAs tendem a criar simetria artificial perfeita.",
+    "stats": "Analisa a distribuição estatística dos pixels. Imagens IA têm histogramas com padrões distintos.",
+    "fft": "Detecta padrões periódicos de frequência via Transformada de Fourier — comuns em imagens geradas por IA.",
+    "texture": "Compara texturas com superfícies naturais. IA tende a criar texturas excessivamente suaves e sem imperfeições.",
+    "shadow": "Verifica se as sombras têm direção de luz consistente. IA frequentemente gera sombras fisicamente impossíveis.",
+    "ela": "Error Level Analysis: detecta inconsistências de compressão JPEG que indicam edição ou geração digital.",
+    "gradient": "Analisa bordas da imagem. IA produz bordas artificialmente uniformes e sem ruído orgânico de câmera.",
+    "exif": "Metadados gravados pela câmera (marca, modelo, GPS). Imagens IA raramente têm EXIF de câmera real.",
+    "noise": "O ruído eletrônico do sensor é único a cada câmera real. IA gera ruído artificial com padrão diferente.",
+    "temporal": "Apenas vídeo. Compara frames consecutivos para detectar transições anômalas ou flicker artificial.",
+    "platformLabel": "Rótulo de detecção de IA fornecido pela plataforma de origem (ex: filtro de IA do TikTok).",
+    "hive": "API Hive Moderation — modelo proprietário treinado com bilhões de exemplos de conteúdo gerado por IA.",
+    "sightengine": "API Sightengine — especializada em deepfakes e manipulação de rostos em imagens e vídeos.",
+    "transformers": "Modelo ViT local rodando no servidor, sem envio de dados para APIs externas."
+  },
   "viz": {
     "ela": {
       "title": "Análise de Erro (ELA)",
@@ -97,6 +130,24 @@
     "shadow": {
       "title": "Direção de Iluminação",
       "desc": "Setas verdes = iluminação consistente. Setas vermelhas = direções inconsistentes, possível IA"
+    }
+  },
+  "how": {
+    "title": "Como Funciona",
+    "step1": {
+      "icon": "📤",
+      "title": "Envie a mídia",
+      "desc": "Faça upload de imagem ou vídeo, ou cole o link de uma rede social"
+    },
+    "step2": {
+      "icon": "🧠",
+      "title": "Análise automática",
+      "desc": "14 detectores locais e APIs especializadas analisam em segundos, sem armazenar seus dados"
+    },
+    "step3": {
+      "icon": "📊",
+      "title": "Resultado detalhado",
+      "desc": "Score de 0 a 100 com detalhamento por detector e visualizações forenses exportáveis"
     }
   },
   "limit": {
@@ -118,7 +169,9 @@
     "invalidUrl": "URL inválida. Verifique o link e tente novamente",
     "platformNotSupported": "Plataforma não suportada. Use Instagram, TikTok ou Twitter",
     "analysisError": "Erro na análise. Tente novamente",
-    "networkError": "Erro de conexão. Verifique sua internet"
+    "networkError": "Erro de conexão. Verifique sua internet",
+    "tryAgain": "Nova Análise",
+    "tryAgainHint": "Verifique o arquivo ou link e tente novamente"
   },
   "confidence": {
     "HIGH": "Alta",

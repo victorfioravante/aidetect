@@ -29,8 +29,23 @@ export function DetectorCard({ name, result, index }: Props) {
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${result.passed ? 'bg-green-500' : 'bg-red-500'}`} />
+          <div className={`w-2 h-2 rounded-full flex-none ${result.passed ? 'bg-green-500' : 'bg-red-500'}`} />
           <span className="text-white text-sm font-medium">{t(`detectors.${name}`)}</span>
+          {/* Tooltip icon — CSS-only, no JS */}
+          <div className="relative group/tip">
+            <span className="text-gray-600 hover:text-gray-400 text-xs cursor-help leading-none select-none">ⓘ</span>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20
+              hidden group-hover/tip:block
+              bg-gray-800 text-gray-300 text-xs rounded-lg px-3 py-2 w-56
+              border border-gray-700 shadow-xl pointer-events-none
+              whitespace-normal leading-relaxed text-left">
+              {t(`detectorTooltips.${name}`)}
+              {/* Tooltip arrow */}
+              <span className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0
+                border-l-[5px] border-r-[5px] border-t-[5px]
+                border-l-transparent border-r-transparent border-t-gray-700" />
+            </div>
+          </div>
         </div>
         <span className="text-gray-400 text-sm font-mono">{result.score}%</span>
       </div>
