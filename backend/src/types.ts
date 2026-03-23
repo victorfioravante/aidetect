@@ -83,9 +83,10 @@ export function computeVerdict(score: number): { verdict: Verdict; confidence: C
   if (score >= 70) {
     return { verdict: 'AI_GENERATED', confidence: score >= 85 ? 'HIGH' : 'MEDIUM' }
   }
-  if (score >= 40) {
+  if (score >= 45) {
     // Score 62-69: strong suspicion (near the AI threshold)
-    // Score 40-61: weak suspicion (borderline, could go either way)
+    // Score 45-61: weak suspicion (borderline, could go either way)
+    // Raised from 40→45 to reduce false positives on real photos without EXIF.
     return { verdict: 'SUSPICIOUS', confidence: score >= 62 ? 'MEDIUM' : 'LOW' }
   }
   return { verdict: 'AUTHENTIC', confidence: score < 20 ? 'HIGH' : 'MEDIUM' }
@@ -116,14 +117,14 @@ export function computeFinalScore(
   // When the ViT model is unavailable, estimate its score from more reliable
   // local detectors: exif + noise + fft + texture + ela.
   //
-  // Previous heuristic used shadow+ELA+FFT, which are the detectors with the
-  // highest false-positive rates on real high-contrast photos. The new blend
-  // uses exif (most authoritative) and noise (most reliable) as primary signals.
-  //
-  // Cap at 55 when EXIF confirms a real camera to prevent false AI_GENERATED.
+  // Cap at 55 when any signal confirms this is a real photo (hasConfirmedReal)
+  // to prevent false AI_GENERATED verdicts on legitimate photos.
   if (breakdown.transformers.abstained) {
-    const exifScore = breakdown.exif?.score ?? 50
-    const hasConfirmedCamera = exifScore < 20
+    const exifScore  = breakdown.exif?.score  ?? 50
+    const noiseScore = breakdown.noise?.score ?? 50
+    const hasConfirmedCamera_ = exifScore  < 20
+    const hasNaturalNoise_    = noiseScore < 25
+    const hasConfirmedReal_   = hasConfirmedCamera_ || hasNaturalNoise_
 
     let heuristic = Math.round(
       rawScores.exif    * 0.30 +
@@ -133,7 +134,7 @@ export function computeFinalScore(
       rawScores.ela     * 0.10
     )
 
-    if (hasConfirmedCamera) {
+    if (hasConfirmedReal_) {
       heuristic = Math.min(heuristic, 55)
     }
 
@@ -141,11 +142,15 @@ export function computeFinalScore(
     effectiveBreakdown.transformers = {
       score: heuristic,
       label: lang === 'en'
-        ? hasConfirmedCamera
+        ? hasConfirmedCamera_
           ? `Local heuristic (EXIF-moderated) — model unavailable`
+          : hasNaturalNoise_
+          ? `Local heuristic (noise-moderated) — model unavailable`
           : `Local heuristic (EXIF+noise+FFT+texture+ELA) — model unavailable`
-        : hasConfirmedCamera
+        : hasConfirmedCamera_
           ? `Heurística local (moderada por EXIF) — modelo indisponível`
+          : hasNaturalNoise_
+          ? `Heurística local (moderada por ruído) — modelo indisponível`
           : `Heurística local (EXIF+ruído+FFT+textura+ELA) — modelo indisponível`,
       passed: heuristic < 50,
     }
@@ -197,9 +202,15 @@ export function computeFinalScore(
 
   // ─── 3. OVERRIDE RULES ────────────────────────────────────────────────────
 
-  const exifScore = breakdown.exif?.score ?? 50
-  // EXIF score < 20 means real camera metadata was confirmed
+  const exifScore  = breakdown.exif?.score  ?? 50
+  const noiseScore = breakdown.noise?.score ?? 50
+  // hasConfirmedCamera: EXIF contains real camera Make/Model (strongest signal)
   const hasConfirmedCamera = !breakdown.exif?.abstained && exifScore < 20
+  // hasNaturalNoise: noise CV is clearly natural (strong signal even without EXIF)
+  // Photos shared via WhatsApp/Telegram strip EXIF but preserve noise characteristics.
+  const hasNaturalNoise = !breakdown.noise?.abstained && noiseScore < 25
+  // hasConfirmedReal: at least one strong signal confirms this is a real photo.
+  const hasConfirmedReal = hasConfirmedCamera || hasNaturalNoise
 
   // Platform explicitly labelled this as AI-generated
   if (!breakdown.platformLabel.abstained && breakdown.platformLabel.score >= 95) {
@@ -211,10 +222,10 @@ export function computeFinalScore(
     score = Math.max(score, 80)
   }
 
-  // Shadow+ELA overrides: ONLY fire when EXIF has NOT confirmed a real camera.
-  // Real photos in high-contrast scenes (window vs dark room, etc.) naturally
-  // produce inconsistent shadow directions and ELA artifacts from recompression.
-  if (!hasConfirmedCamera) {
+  // Shadow+ELA overrides: ONLY fire when NO signal confirms a real photo.
+  // Real photos in high-contrast scenes naturally produce inconsistent gradients
+  // and ELA artifacts from recompression — these must not push them to AI verdict.
+  if (!hasConfirmedReal) {
     if (breakdown.shadow.score > 85 && breakdown.ela.score > 70) {
       score = Math.max(score, 65)
     }
@@ -234,19 +245,29 @@ export function computeFinalScore(
     score = Math.max(score, 60)
   }
 
-  // If EXIF confirmed real camera, hard-cap score at 65 unless platform/EXIF software override
-  // was already applied — those are authoritative signals.
-  if (hasConfirmedCamera) {
-    const platformOverrideApplied = !breakdown.platformLabel.abstained && breakdown.platformLabel.score >= 95
-    const exifSoftwareOverrideApplied = breakdown.exif.score >= 80
-    if (!platformOverrideApplied && !exifSoftwareOverrideApplied) {
-      // Apply a 10-point calibration discount before the hard cap.
-      // Real camera hardware is strong prior evidence of authenticity; this accounts
-      // for systematic false-positive bias from HEIC→JPEG conversion artifacts,
-      // high-contrast textures (wood, fabric), and multi-source lighting (shadows).
+  // hasConfirmedReal: hard-cap score — authoritative "real photo" evidence.
+  // Apply BEFORE symmetry bonus so the bonus can push below confidence thresholds.
+  const platformOverrideApplied = !breakdown.platformLabel.abstained && breakdown.platformLabel.score >= 95
+  const exifSoftwareOverrideApplied = breakdown.exif.score >= 80
+
+  if (hasConfirmedReal && !platformOverrideApplied && !exifSoftwareOverrideApplied) {
+    if (hasConfirmedCamera) {
+      // Strong prior: camera hardware in EXIF — larger discount, tighter cap
       score = Math.max(0, score - 10)
       score = Math.min(score, 45)
+    } else {
+      // Weaker prior: natural noise only, no camera EXIF (photo was re-shared/stripped)
+      score = Math.max(0, score - 5)
+      score = Math.min(score, 55)
     }
+  }
+
+  // Symmetry bonus: strong asymmetry (score < 15) combined with natural noise is
+  // additional evidence of a real photo. Imaged by real cameras have organic
+  // asymmetry; AI generators often produce subtle bilateral symmetry.
+  const symmetryScore = breakdown.symmetry?.score ?? 50
+  if (symmetryScore < 15 && hasNaturalNoise) {
+    score = Math.max(0, score - 10)
   }
 
   return { score: Math.min(100, score), effectiveBreakdown }

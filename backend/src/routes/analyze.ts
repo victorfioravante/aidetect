@@ -153,8 +153,17 @@ analyzeRouter.post(
       // score < 20 means EXIF strongly confirms a real camera
       const hasConfirmedCamera = exifResult.score < 20
 
-      // ── Phase 2: all remaining analyzers in parallel ──
-      // ELA, gradient, shadow receive hasConfirmedCamera to apply false-positive caps.
+      // ── Phase 2a: noise (fast) — needed to compute hasConfirmedReal ────────
+      // Natural noise (high CV) is strong evidence of a real photo even when EXIF
+      // has no camera data (photos shared via WhatsApp/Telegram strip EXIF).
+      const noiseResult = await noiseAnalyzer(buffer, lang)
+      const hasNaturalNoise = noiseResult.score < 25
+      // hasConfirmedReal: at least one strong signal confirms this is a real photo.
+      // Used by ELA/gradient/shadow to apply false-positive caps.
+      const hasConfirmedReal = hasConfirmedCamera || hasNaturalNoise
+
+      // ── Phase 2b: all remaining analyzers in parallel ─────────────────────
+      // ELA, gradient, shadow receive hasConfirmedReal to apply false-positive caps.
       const [
         { result: elaResult, elaMap },
         { result: gradientResult, gradientMap },
@@ -166,19 +175,17 @@ analyzeRouter.post(
         hiveResult,
         sightengineResult,
         transformersResult,
-        noiseResult,
       ] = await Promise.all([
-        elaAnalyzer(buffer, lang, { hasConfirmedCamera }),
-        gradientAnalyzer(buffer, lang, { hasConfirmedCamera }),
+        elaAnalyzer(buffer, lang, { hasConfirmedReal }),
+        gradientAnalyzer(buffer, lang, { hasConfirmedReal }),
         textureAnalyzer(buffer, lang),
         fftAnalyzer(buffer, lang),
-        shadowAnalyzer(buffer, lang, { hasConfirmedCamera }),
+        shadowAnalyzer(buffer, lang, { hasConfirmedReal }),
         symmetryAnalyzer(buffer, lang),
         statsAnalyzer(buffer, lang),
         hiveAnalyzer(buffer, lang),
         sightengineAnalyzer(buffer, lang),
         transformersAnalyzer(buffer, lang),
-        noiseAnalyzer(buffer, lang),
       ])
 
       // Temporal: use all extracted frames for video; skipped for images.

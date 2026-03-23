@@ -9,7 +9,7 @@ import { DetectorResult } from '../types'
 export async function gradientAnalyzer(
   buffer: Buffer,
   lang: string,
-  options?: { hasConfirmedCamera?: boolean },
+  options?: { hasConfirmedReal?: boolean },
 ): Promise<{
   result: DetectorResult & { edgeDensity?: number }
   gradientMap: string
@@ -70,7 +70,7 @@ export async function gradientAnalyzer(
     const rawScore = computeGradientAIScore(avgMag, edgeDensity, blockVariance)
     // Photos of geometric scenes (walls, doors, furniture) have naturally uniform
     // edges — this is NOT an AI signal. Cap at 50 when EXIF confirms a real camera.
-    const score = options?.hasConfirmedCamera ? Math.min(rawScore, 50) : rawScore
+    const score = options?.hasConfirmedReal ? Math.min(rawScore, 50) : rawScore
 
     // Apply colormap: dark-blue → cyan → yellow → white
     const rgbData = Buffer.alloc(width * height * 3)

@@ -79,11 +79,16 @@ async function analyzeImageBuffer(rawBuffer: Buffer, lang: Lang): Promise<FrameA
   // Normalize to JPEG for consistent processing (handles HEIC/HEIF/AVIF from social platforms).
   const buffer = await normalizeBuffer(rawBuffer)
 
-  // Phase 1: EXIF first — must know hasConfirmedCamera before running ELA/gradient/shadow
+  // Phase 1: EXIF first — must know hasConfirmedCamera before running analyzers
   const exifResult = await exifAnalyzer(rawBuffer, lang)
   const hasConfirmedCamera = exifResult.score < 20
 
-  // Phase 2: all other analyzers in parallel
+  // Phase 2a: noise — needed to compute hasConfirmedReal
+  const noiseResult = await noiseAnalyzer(buffer, lang)
+  const hasNaturalNoise = noiseResult.score < 25
+  const hasConfirmedReal = hasConfirmedCamera || hasNaturalNoise
+
+  // Phase 2b: all remaining analyzers in parallel
   const [
     { result: elaResult, elaMap },
     { result: gradientResult, gradientMap },
@@ -95,19 +100,17 @@ async function analyzeImageBuffer(rawBuffer: Buffer, lang: Lang): Promise<FrameA
     hiveResult,
     sightengineResult,
     transformersResult,
-    noiseResult,
   ] = await Promise.all([
-    elaAnalyzer(buffer, lang, { hasConfirmedCamera }),
-    gradientAnalyzer(buffer, lang, { hasConfirmedCamera }),
+    elaAnalyzer(buffer, lang, { hasConfirmedReal }),
+    gradientAnalyzer(buffer, lang, { hasConfirmedReal }),
     textureAnalyzer(buffer, lang),
     fftAnalyzer(buffer, lang),
-    shadowAnalyzer(buffer, lang, { hasConfirmedCamera }),
+    shadowAnalyzer(buffer, lang, { hasConfirmedReal }),
     symmetryAnalyzer(buffer, lang),
     statsAnalyzer(buffer, lang),
     hiveAnalyzer(buffer, lang),
     sightengineAnalyzer(buffer, lang),
     transformersAnalyzer(buffer, lang),
-    noiseAnalyzer(buffer, lang),
   ])
 
   return {

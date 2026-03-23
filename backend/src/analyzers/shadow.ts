@@ -11,7 +11,7 @@ const VIZ_SIZE = 192 // divisible by 3 for 3x3 grid
 export async function shadowAnalyzer(
   buffer: Buffer,
   lang: string,
-  options?: { hasConfirmedCamera?: boolean },
+  options?: { hasConfirmedReal?: boolean },
 ): Promise<{
   result: DetectorResult
   shadowViz: string
@@ -75,12 +75,12 @@ export async function shadowAnalyzer(
     if (pixelStdDev > 80) score = Math.min(score, 70)
     // Cap 2: EXIF-confirmed real camera — multi-source lighting in real photos
     // is not evidence of AI; cap at 60
-    if (options?.hasConfirmedCamera) score = Math.min(score, 60)
+    if (options?.hasConfirmedReal) score = Math.min(score, 60)
 
     console.log(
       '[shadow] pixelStdDev:', pixelStdDev.toFixed(2),
       '| highContrast cap (>80→70):', pixelStdDev > 80,
-      '| hasConfirmedCamera:', options?.hasConfirmedCamera ?? false,
+      '| hasConfirmedReal:', options?.hasConfirmedReal ?? false,
       '| finalScore:', score,
     )
 
