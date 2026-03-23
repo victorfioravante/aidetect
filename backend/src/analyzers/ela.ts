@@ -56,10 +56,15 @@ export async function elaAnalyzer(
     // Cap at 55 when EXIF confirms a real camera to avoid false positives.
     const score = options?.hasConfirmedCamera ? Math.min(rawElaScore, 55) : rawElaScore
 
-    // Apply hot colormap: 0→black, 85→red, 170→yellow, 255→white
-    const rgbData = Buffer.alloc(info.width * info.height * 3)
-    for (let i = 0; i < amplified.length; i++) {
-      const v = amplified[i]
+    // Apply hot colormap per PIXEL: 0→black, 85→red, 170→yellow, 255→white
+    // `amplified` contains per-channel values (R,G,B interleaved), so we average
+    // the three channel differences to get a single grayscale ELA intensity per pixel.
+    const numPixels = info.width * info.height
+    const rgbData = Buffer.alloc(numPixels * 3)
+    for (let px = 0; px < numPixels; px++) {
+      const v = Math.round(
+        (amplified[px * 3] + amplified[px * 3 + 1] + amplified[px * 3 + 2]) / 3
+      )
       let r = 0, g = 0, b = 0
       if (v <= 85) {
         r = Math.round(v * 3)
@@ -71,9 +76,9 @@ export async function elaAnalyzer(
         g = 255
         b = Math.round((v - 170) * 3)
       }
-      rgbData[i * 3] = r
-      rgbData[i * 3 + 1] = g
-      rgbData[i * 3 + 2] = b
+      rgbData[px * 3] = r
+      rgbData[px * 3 + 1] = g
+      rgbData[px * 3 + 2] = b
     }
 
     const elaImage = await sharp(rgbData, {

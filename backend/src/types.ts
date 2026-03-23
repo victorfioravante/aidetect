@@ -240,7 +240,12 @@ export function computeFinalScore(
     const platformOverrideApplied = !breakdown.platformLabel.abstained && breakdown.platformLabel.score >= 95
     const exifSoftwareOverrideApplied = breakdown.exif.score >= 80
     if (!platformOverrideApplied && !exifSoftwareOverrideApplied) {
-      score = Math.min(score, 55)
+      // Apply a 10-point calibration discount before the hard cap.
+      // Real camera hardware is strong prior evidence of authenticity; this accounts
+      // for systematic false-positive bias from HEIC→JPEG conversion artifacts,
+      // high-contrast textures (wood, fabric), and multi-source lighting (shadows).
+      score = Math.max(0, score - 10)
+      score = Math.min(score, 45)
     }
   }
 
