@@ -21,7 +21,7 @@
     "title": "Drag and drop your image here",
     "subtitle": "or click to select",
     "btn": "Select File",
-    "formats": "JPG, PNG, WebP, GIF, HEIC (iPhone) · Max 30MB"
+    "formats": "JPG, PNG, WebP, GIF · Max 30MB"
   },
   "link": {
     "placeholder": "Paste TikTok, Instagram, Twitter or YouTube link...",
@@ -114,6 +114,7 @@
   "errors": {
     "fileTooBig": "File too large. Maximum allowed: 10MB",
     "unsupportedFormat": "Unsupported format. Use JPG, PNG, WebP or GIF",
+    "HEIC_NOT_SUPPORTED": "HEIC format not supported. On iPhone, go to Settings → Camera → Formats → Most Compatible (JPEG)",
     "invalidUrl": "Invalid URL. Check the link and try again",
     "platformNotSupported": "Platform not supported. Use Instagram, TikTok or Twitter",
     "analysisError": "Analysis error. Please try again",

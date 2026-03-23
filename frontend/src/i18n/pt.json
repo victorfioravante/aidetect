@@ -21,7 +21,7 @@
     "title": "Arraste e solte sua imagem aqui",
     "subtitle": "ou clique para selecionar",
     "btn": "Selecionar Arquivo",
-    "formats": "JPG, PNG, WebP, GIF, HEIC (iPhone) · Máx 30MB"
+    "formats": "JPG, PNG, WebP, GIF · Máx 30MB"
   },
   "link": {
     "placeholder": "Cole o link do TikTok, Instagram, Twitter ou YouTube...",
@@ -114,6 +114,7 @@
   "errors": {
     "fileTooBig": "Arquivo muito grande. Máximo permitido: 10MB",
     "unsupportedFormat": "Formato não suportado. Use JPG, PNG, WebP ou GIF",
+    "HEIC_NOT_SUPPORTED": "Formato HEIC não suportado. No iPhone, vá em Ajustes → Câmera → Formatos → Mais Compatível (JPEG)",
     "invalidUrl": "URL inválida. Verifique o link e tente novamente",
     "platformNotSupported": "Plataforma não suportada. Use Instagram, TikTok ou Twitter",
     "analysisError": "Erro na análise. Tente novamente",

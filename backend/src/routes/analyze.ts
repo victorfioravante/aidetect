@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
 import multer from 'multer'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
@@ -20,27 +20,26 @@ import { extractVideoFrames } from '../lib/videoFrames'
 import { computeFinalScore, computeVerdict, AnalysisResult, Lang } from '../types'
 import { rateLimitMiddleware } from '../middleware/rateLimit'
 
-// All accepted MIME types — HEIC/HEIF/AVIF added for iPhone and modern formats
+// Accepted MIME types.
+// HEIC/HEIF are intentionally excluded: sharp on Railway lacks libheif and cannot
+// decode them. Without HEIC in the accept list, iOS Safari auto-converts HEIC→JPEG
+// before uploading. If a HEIC file arrives anyway, normalizeBuffer will throw and
+// we return HEIC_NOT_SUPPORTED (see catch block below).
 const ACCEPTED_MIMETYPES = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
   'image/gif',
-  'image/heic',
-  'image/heif',
-  'image/heic-sequence', // some iOS versions report this for HEIC
-  'image/avif',
   'video/mp4',
   'video/quicktime',
   'video/x-msvideo',
 ])
 
-// Extensions that are always allowed regardless of reported MIME type.
-// Safari and some iOS browsers report HEIC as 'application/octet-stream'
-// or even '' (empty string), so we also check the original filename extension.
+const HEIC_MIMETYPES = new Set(['image/heic', 'image/heif', 'image/heic-sequence'])
+const HEIC_EXTENSIONS = new Set(['.heic', '.heif'])
+
 const ACCEPTED_EXTENSIONS = new Set([
   '.jpg', '.jpeg', '.png', '.webp', '.gif',
-  '.heic', '.heif', '.avif',
   '.mp4', '.mov', '.avi',
 ])
 
@@ -50,6 +49,15 @@ const upload = multer({
   fileFilter: (_req, file, cb) => {
     const mime = file.mimetype.toLowerCase()
     const ext  = path.extname(file.originalname).toLowerCase()
+
+    if (HEIC_MIMETYPES.has(mime) || HEIC_EXTENSIONS.has(ext)) {
+      // Reject early with a clear message. iOS sends HEIC only when the client's
+      // accept list explicitly includes image/heic — our frontend never does this.
+      console.log('[upload] HEIC rejected:', mime, ext)
+      cb(new Error('HEIC_NOT_SUPPORTED'))
+      return
+    }
+
     const allowed = ACCEPTED_MIMETYPES.has(mime) || ACCEPTED_EXTENSIONS.has(ext) || mime === 'application/octet-stream'
     console.log('[upload] mimetype:', mime, '| ext:', ext, '| allowed:', allowed)
     cb(null, allowed)
@@ -58,10 +66,27 @@ const upload = multer({
 
 export const analyzeRouter = Router()
 
+// Inline multer error handler: catches fileFilter rejections (e.g. HEIC_NOT_SUPPORTED)
+// before they bubble up as unhandled Express errors.
+function uploadMiddleware(req: Request, res: Response, next: NextFunction) {
+  upload.single('file')(req, res, (err: unknown) => {
+    if (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg === 'HEIC_NOT_SUPPORTED') {
+        res.status(415).json({ success: false, error: 'HEIC_NOT_SUPPORTED', code: 'HEIC_NOT_SUPPORTED' })
+        return
+      }
+      next(err)
+      return
+    }
+    next()
+  })
+}
+
 analyzeRouter.post(
   '/',
   rateLimitMiddleware,
-  upload.single('file'),
+  uploadMiddleware,
   async (req: Request, res: Response): Promise<void> => {
     const lang: Lang = (req.body.lang as Lang) || 'pt'
 
@@ -103,10 +128,12 @@ analyzeRouter.post(
       }
     } catch (err) {
       console.error('[normalize/extract error]', err)
-      res.status(422).json({
+      const errMsg = String(err instanceof Error ? err.message : err).toLowerCase()
+      const isHeicErr = errMsg.includes('heif') || errMsg.includes('heic')
+      res.status(isHeicErr ? 415 : 422).json({
         success: false,
-        error: isVideo ? 'Could not extract frames from video' : 'Unsupported image format',
-        code: 'UNSUPPORTED_FORMAT',
+        error: isHeicErr ? 'HEIC_NOT_SUPPORTED' : (isVideo ? 'Could not extract frames from video' : 'Unsupported image format'),
+        code: isHeicErr ? 'HEIC_NOT_SUPPORTED' : 'UNSUPPORTED_FORMAT',
       })
       return
     }

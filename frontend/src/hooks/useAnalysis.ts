@@ -47,6 +47,9 @@ export function useAnalysis() {
       if (axiosErr.response?.status === 429) {
         const body = axiosErr.response.data as RateLimitError
         setRateLimit(body.resetAt)
+      } else if (axiosErr.response?.data) {
+        const body = axiosErr.response.data as ApiError
+        setError(body.error || 'networkError')
       } else {
         setError('networkError')
       }

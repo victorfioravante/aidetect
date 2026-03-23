@@ -59,13 +59,13 @@ export function InputTabs() {
   const { getRootProps: getImageProps, getInputProps: getImageInput, isDragActive: isImageDrag } = useDropzone({
     onDrop: (f) => onDrop(f, false),
     accept: {
+      // HEIC/HEIF intentionally omitted: listing them causes iOS Safari to send
+      // raw HEIC to the server, which sharp cannot decode on Railway (no libheif).
+      // Without these types, iOS automatically converts HEIC→JPEG before upload.
       'image/jpeg':  ['.jpg', '.jpeg'],
       'image/png':   ['.png'],
       'image/webp':  ['.webp'],
       'image/gif':   ['.gif'],
-      'image/heic':  ['.heic'],
-      'image/heif':  ['.heif'],
-      'image/avif':  ['.avif'],
     },
     multiple: false,
     disabled: isLoading,
