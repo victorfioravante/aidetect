@@ -22,6 +22,13 @@ export async function exifAnalyzer(buffer: Buffer, lang: string): Promise<Detect
     let score = 0
     const signals: string[] = []
 
+    // HEIF/HEIC format is almost exclusively produced by real device cameras (iPhone, etc.)
+    // AI-generated images are virtually never saved in HEIC format.
+    if (metadata.format === 'heif') {
+      score = Math.max(0, score - 20)
+      signals.push(lang === 'en' ? 'HEIC format (device camera)' : 'Formato HEIC (câmera do dispositivo)')
+    }
+
     const exif = metadata.exif
 
     if (!exif || exif.length === 0) {
@@ -42,12 +49,16 @@ export async function exifAnalyzer(buffer: Buffer, lang: string): Promise<Detect
       }
 
       if (parsed) {
-        // Check for camera model / make
+        // Check for camera model / make.
+        // Strip null bytes (\0) from C-string values that some parsers leave in.
+        // Also check the Photo/Exif sub-IFD where some cameras store Make/Model.
         const image = (parsed as Record<string, Record<string, unknown>>).Image ?? {}
         const exifIfd = (parsed as Record<string, Record<string, unknown>>).Exif ?? {}
-        const make: string = String(image.Make ?? image.make ?? '')
-        const model: string = String(image.Model ?? image.model ?? '')
-        const software: string = String(image.Software ?? image.software ?? exifIfd.Software ?? '')
+        const photo = (parsed as Record<string, Record<string, unknown>>).Photo ?? {}
+        const stripNull = (v: unknown) => String(v ?? '').replace(/\0/g, '').trim()
+        const make: string = stripNull(image.Make ?? image.make ?? exifIfd.Make ?? photo.Make ?? '')
+        const model: string = stripNull(image.Model ?? image.model ?? exifIfd.Model ?? photo.Model ?? '')
+        const software: string = stripNull(image.Software ?? image.software ?? exifIfd.Software ?? photo.Software ?? '')
 
         if (!make && !model) {
           score += 25
@@ -61,7 +72,8 @@ export async function exifAnalyzer(buffer: Buffer, lang: string): Promise<Detect
         if (software && AI_SOFTWARE_PATTERNS.test(software)) {
           score += 80
           signals.push(lang === 'en' ? `AI software: ${software}` : `Software IA: ${software}`)
-        } else if (software) {
+        } else if (software && software.toLowerCase() !== 'sharp') {
+          // Skip logging "sharp" (our own processing library) as a noteworthy software signal
           signals.push(lang === 'en' ? `Software: ${software}` : `Software: ${software}`)
         }
 

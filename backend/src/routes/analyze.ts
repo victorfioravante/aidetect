@@ -113,9 +113,10 @@ analyzeRouter.post(
 
     try {
       // ── Phase 1: EXIF (must run first so ELA/gradient/shadow can be moderated) ──
-      // For video: use the keyFrame buffer (EXIF in the extracted JPEG).
-      // For images: use rawBuffer to read native EXIF before conversion.
-      const exifResult = await exifAnalyzer(isVideo ? buffer : rawBuffer, lang)
+      // Always use the normalized JPEG buffer: normalizeBuffer() calls .withMetadata()
+      // which preserves all EXIF (Make, Model, GPS). Reading from rawBuffer (HEIC) is
+      // unreliable because exif-reader cannot parse HEIC-native EXIF tag structures.
+      const exifResult = await exifAnalyzer(buffer, lang)
       // score < 20 means EXIF strongly confirms a real camera
       const hasConfirmedCamera = exifResult.score < 20
 
